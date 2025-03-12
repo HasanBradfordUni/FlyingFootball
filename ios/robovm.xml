@@ -44,4 +44,7 @@
     <framework>AVFoundation</framework>
     <framework>GameController</framework>
   </frameworks>
+  <iosSignIdentity>iPhone Developer</iosSignIdentity>
+  <iosProvisioningProfile>Automatic</iosProvisioningProfile>
+  <iosTeamId>7TLPJG34HC</iosTeamId>  <!-- Replace with your actual Team ID -->
 </config>
