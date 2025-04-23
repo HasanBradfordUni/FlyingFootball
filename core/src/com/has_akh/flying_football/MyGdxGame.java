@@ -139,7 +139,6 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		batch.draw(footballs[thisFootball], centreX, ballY, 300, 200);
-		batch.end();
 
 		shapes.begin(ShapeRenderer.ShapeType.Line);
 		shapes.setColor(Color.BLACK);
@@ -149,6 +148,8 @@ public class MyGdxGame extends ApplicationAdapter {
 		football.set(footballOval.x, footballOval.y, 100);
 
 		font.draw(batch, String.valueOf(score), centreX, height-200);
+
+		batch.end();
 
 		for (int i = 0; i < numOfGoals; i++) {
 			shapes.rect(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i]);
