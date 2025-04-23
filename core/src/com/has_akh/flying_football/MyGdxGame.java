@@ -59,6 +59,8 @@ public class MyGdxGame extends ApplicationAdapter {
 		upperBarriers = new Rectangle[numOfGoals];
 		football = new Circle();
 		font = new BitmapFont();
+		font.setColor(Color.WHITE);
+		font.getData().setScale(10);
 
 		for (int i = 0; i < numOfGoals; i++) {
 			supportX[i] = (Gdx.graphics.getWidth()/2) - 100 + Gdx.graphics.getWidth() + i * distanceBetweenGoals;
@@ -145,6 +147,8 @@ public class MyGdxGame extends ApplicationAdapter {
 		footballOval.set(centreX, ballY, 300, 200);
 		shapes.ellipse(footballOval.x, footballOval.y, footballOval.width, footballOval.height);
 		football.set(footballOval.x, footballOval.y, 100);
+
+		font.draw(batch, String.valueOf(score), centreX, height-200);
 
 		for (int i = 0; i < numOfGoals; i++) {
 			shapes.rect(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i]);
