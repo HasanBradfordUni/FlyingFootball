@@ -19,6 +19,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	SpriteBatch batch;
 	ShapeRenderer shapes;
 	Texture background;
+	Texture gameover;
 	Texture[] footballs;
 	Ellipse footballOval;
 	Rectangle[] lowerBarriers;
@@ -45,6 +46,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	public void create () {
 		batch = new SpriteBatch();
 		background = new Texture("Background.jpg");
+		gameover = new Texture("Gameover.png");
 		footballs = new Texture[2];
 		goalSupport = new Texture("GoalSupport.png");
 		goal = new Texture("Goal.png");
@@ -82,7 +84,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		batch.begin();
 		batch.draw(background, 0, 0, width, height);
 
-		if (gameState != 0) {
+		if (gameState == 1) {
 
 			if (supportX[scoringGoal] < centreX) {
 				score++;
@@ -125,12 +127,22 @@ public class MyGdxGame extends ApplicationAdapter {
 				thisFootball = 0;
 			}
 
-			if (ballY > 0 || velocity < 0) {
+			if (ballY > 0) {
 				velocity++;
 				ballY -= velocity;
+			} else {
+				gameState = 2;
 			}
 
-		} else {
+		} else if (gameState == 0) {
+
+			if (Gdx.input.justTouched()) {
+				gameState = 1;
+			}
+
+		} else if (gameState == 2) {
+
+			batch.draw(gameover, centreX, centreY);
 
 			if (Gdx.input.justTouched()) {
 				gameState = 1;
@@ -157,6 +169,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (Intersector.overlaps(football, lowerBarriers[i]) || Intersector.overlaps(football, upperBarriers[i])) {
 				Gdx.app.log("Collision", "Yes!");
 				collision = true;
+				gameState = 2;
 			}
 		}
 
