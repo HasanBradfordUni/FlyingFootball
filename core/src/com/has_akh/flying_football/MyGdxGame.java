@@ -55,7 +55,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		footballs[1] = new Texture("Football2.png");
 		ballY = (Gdx.graphics.getHeight()/2) - 100;
 		randomGenerator = new Random();
-		goalVelocity = 4;
+		goalVelocity = 3;
 		distanceBetweenGoals = Gdx.graphics.getWidth() / 3;
 		lowerBarriers = new Rectangle[numOfGoals];
 		upperBarriers = new Rectangle[numOfGoals];
@@ -63,15 +63,20 @@ public class MyGdxGame extends ApplicationAdapter {
 		font = new BitmapFont();
 		font.setColor(Color.WHITE);
 		font.getData().setScale(10);
+		startGame();
+		shapes = new ShapeRenderer();
+		collision = false;
+	}
+
+	public void startGame() {
+		ballY = (Gdx.graphics.getHeight()/2) - 100;
 
 		for (int i = 0; i < numOfGoals; i++) {
-			supportX[i] = (Gdx.graphics.getWidth()/2) - 100 + Gdx.graphics.getWidth() + i * distanceBetweenGoals;
+			supportX[i] = (Gdx.graphics.getWidth()/2) - 100 + Gdx.graphics.getWidth()/2 + i * distanceBetweenGoals;
 			supportHeight[i] = randomGenerator.nextInt(600);
 			lowerBarriers[i] = new Rectangle();
 			upperBarriers[i] = new Rectangle();
 		}
-		shapes = new ShapeRenderer();
-		collision = false;
 	}
 
 	@Override
@@ -83,6 +88,12 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		batch.begin();
 		batch.draw(background, 0, 0, width, height);
+
+		if (score < 1) {
+			goalVelocity = 3;
+		} else {
+			goalVelocity = Math.round(3 + (float) Math.sin(score * 0.2) * 2);
+		}
 
 		if (gameState == 1) {
 
@@ -98,7 +109,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			}
 
 			if (Gdx.input.justTouched()) {
-				velocity = -30;
+				velocity = -10;
 			}
 
 			for (int i = 0; i < numOfGoals; i++) {
@@ -110,11 +121,10 @@ public class MyGdxGame extends ApplicationAdapter {
 					supportX[i] -= goalVelocity;
 				}
 
-
 				batch.draw(goalSupport, supportX[i], 0, 200, supportHeight[i]);
 				batch.draw(goal, supportX[i], supportHeight[i], 300, 300);
-				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i]);
-				upperBarriers[i].set(supportX[i], supportHeight[i] + 300, (float) goal.getWidth() /2, height - supportHeight[i] - 300);
+				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i] - 100);
+				upperBarriers[i].set(supportX[i], supportHeight[i] + 400, (float) goal.getWidth() /2, height - supportHeight[i] - 300);
 			}
 
 			if (ballY >= (height-100)) {
@@ -132,6 +142,8 @@ public class MyGdxGame extends ApplicationAdapter {
 				ballY -= velocity;
 			} else {
 				gameState = 2;
+				velocity = 0;
+				ballY = 100;
 			}
 
 		} else if (gameState == 0) {
@@ -142,30 +154,40 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		} else if (gameState == 2) {
 
-			batch.draw(gameover, centreX, centreY);
+			float scaleFactor = 2f; // Adjust this to increase or decrease the size
+			float newWidth = gameover.getWidth() * scaleFactor;
+			float newHeight = gameover.getHeight() * scaleFactor;
+			batch.draw(gameover, centreX + (newWidth / 2), centreY + (newHeight / 2), newWidth, newHeight);
 
 			if (Gdx.input.justTouched()) {
 				gameState = 1;
+				startGame();
+				score = 0;
+				scoringGoal = 0;
+				velocity = 0;  // Reset velocity so the ball jumps
+				ballY = centreY;  // Reset ball position
 			}
 
 		}
 
 		batch.draw(footballs[thisFootball], centreX, ballY, 300, 200);
 
+		/*
 		shapes.begin(ShapeRenderer.ShapeType.Line);
 		shapes.setColor(Color.BLACK);
+		*/
 
-		footballOval.set(centreX, ballY, 300, 200);
-		shapes.ellipse(footballOval.x, footballOval.y, footballOval.width, footballOval.height);
+        footballOval.set(centreX, ballY, 300, 200);
+		//shapes.ellipse(footballOval.x, footballOval.y, footballOval.width, footballOval.height);
 		football.set(footballOval.x, footballOval.y, 100);
 
-		font.draw(batch, String.valueOf(score), centreX, height-200);
+		font.draw(batch, String.valueOf(score), centreX+100, height-200);
 
 		batch.end();
 
 		for (int i = 0; i < numOfGoals; i++) {
-			shapes.rect(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i]);
-			shapes.rect(supportX[i], supportHeight[i] + 300, (float) goal.getWidth() /2, height - supportHeight[i] - 300);
+			//shapes.rect(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i] - 100);
+			//shapes.rect(supportX[i], supportHeight[i] + 400, (float) goal.getWidth() /2, height - supportHeight[i] - 300);
 			if (Intersector.overlaps(football, lowerBarriers[i]) || Intersector.overlaps(football, upperBarriers[i])) {
 				Gdx.app.log("Collision", "Yes!");
 				collision = true;
@@ -177,6 +199,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			collision = false;
 		} else {
 			Gdx.app.log("Collision", "No");
+			gameState = 1;
 		}
 		shapes.end();
 	}
