@@ -83,8 +83,8 @@ public class MyGdxGame extends ApplicationAdapter {
 		collision = false;
 
 		// Define button areas
-		pauseButton = new Rectangle(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 150, 120, 120);
-		mainMenuButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 100, Gdx.graphics.getHeight() / 2 + 200, 200, 100);
+		pauseButton = new Rectangle(Gdx.graphics.getWidth() - 300, Gdx.graphics.getHeight() - 200, 150, 100);
+		mainMenuButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, Gdx.graphics.getHeight() / 2 + 200, 500, 150);
 	}
 
 	public void startGame() {
@@ -109,14 +109,48 @@ public class MyGdxGame extends ApplicationAdapter {
 		batch.draw(background, 0, 0, width, height);
 
 		if (score < 1) {
-			goalVelocity = 3;
+			goalVelocity = 5;
 		} else {
-			goalVelocity = Math.round(3 + (float) Math.sin(score * 0.2) * 2);
+			goalVelocity = 2 * Math.round(3 + (float) Math.sin(score * 0.2) * 2);
+		}
+
+		// Check for pause button click **before updating physics**
+		if (gameState == STATE_RUNNING && Gdx.input.justTouched()) {
+			if (pauseButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
+				gameState = STATE_PAUSED; // **Properly pauses the game**
+				batch.end();
+				return; // **Stop further updates**
+			} else {
+				velocity = -10; // Jump when clicking elsewhere
+			}
+		}
+
+		// **PAUSED STATE**: Stop all movement and show menu
+		if (gameState == STATE_PAUSED) {
+			batch.setColor(1, 1, 1, 0.4f); // White with 40% opacity
+			batch.draw(pausedGraphic, 0, 0, width, height); // Draw pause overlay
+			batch.setColor(1, 1, 1, 1); // Reset color to full opacity after drawing
+			batch.end();
+
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+			shapes.setColor(Color.BLUE); // Set blue background
+			shapes.rect(mainMenuButton.x, mainMenuButton.y, mainMenuButton.width, mainMenuButton.height); // Draw button shape
+			shapes.end();
+
+			batch.begin();
+			font1.draw(batch, "Main Menu", mainMenuButton.x + 20, mainMenuButton.y + 60); // Draw menu text
+			batch.end();
+
+			// Resume when clicking **anywhere except main menu**
+			if (Gdx.input.justTouched()) {
+				if (!mainMenuButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
+					gameState = STATE_RUNNING; // Resume game
+				}
+			}
+			return; // **Stops all further updates while paused**
 		}
 
 		if (gameState == STATE_RUNNING) {
-
-			font.draw(batch, "⏸️", pauseButton.x, pauseButton.y + pauseButton.height); // Draw pause emoji
 
 			if (supportX[scoringGoal] < centreX) {
 				score++;
@@ -127,13 +161,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				} else {
 					scoringGoal = 0;
 				}
-			}
-
-			// Check if the pause button was clicked
-			if (pauseButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
-				gameState = STATE_PAUSED; // Pause the game
-			} else {
-				velocity = -10; // Jump when clicking elsewhere
 			}
 
 			for (int i = 0; i < numOfGoals; i++) {
@@ -165,7 +192,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				velocity++;
 				ballY -= velocity;
 			} else {
-				gameState = STATE_GAME_OVER;
 				velocity = 0;
 				ballY = 100;
 			}
@@ -174,21 +200,16 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.draw(pausedGraphic, centreX, centreY, 400, 300);  // Draw pause overlay
 
 			// Draw Main Menu button
-			font.draw(batch, "Main Menu", mainMenuButton.x + 20, mainMenuButton.y + 60);
+			font1.draw(batch, "Main Menu", mainMenuButton.x + 20, mainMenuButton.y + 60);
 
-			if (Gdx.input.justTouched()) {
-				if (mainMenuButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
-					// Handle main menu action
-				} else {
-					gameState = STATE_RUNNING; // Resume when clicking anywhere else
-				}
-			}
+			// Stop game physics while paused
+			batch.end();
+			return; // Prevent further game updates
 		} else if (gameState == STATE_NOT_STARTED) {
-
 			if (Gdx.input.justTouched()) {
 				gameState = STATE_RUNNING;
+				velocity = 0;  // Ensure velocity starts from 0
 			}
-
 		} else if (gameState == STATE_GAME_OVER) {
 
 			float scaleFactor = 2f; // Adjust this to increase or decrease the size
@@ -208,6 +229,17 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		batch.draw(footballs[thisFootball], centreX, ballY, 300, 200);
+		batch.end();
+
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+		shapeRenderer.setColor(Color.BLUE); // Set blue background
+		shapeRenderer.rect(pauseButton.x, pauseButton.y, pauseButton.width, pauseButton.height); // Draw button shape
+		shapeRenderer.end();
+
+		// Draw pause symbol
+		batch.begin();
+		font1.draw(batch, "⏸️", pauseButton.x + 40, pauseButton.y + 80);
 
 		/*
 		shapes.begin(ShapeRenderer.ShapeType.Line);
@@ -234,9 +266,6 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (collision) {
 			collision = false;
-		} else {
-			Gdx.app.log("Collision", "No");
-			gameState = STATE_RUNNING;
 		}
 		shapes.end();
 	}

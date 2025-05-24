@@ -21,8 +21,8 @@ android {
         applicationId "com.has_akh.flying_football"
         minSdkVersion 14
         targetSdkVersion 34
-        versionCode 20
-        versionName "1.62"
+        versionCode 21
+        versionName "1.63"
     }
     buildTypes {
         release {
