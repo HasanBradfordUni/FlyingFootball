@@ -23,10 +23,8 @@ public class MyGdxGame extends ApplicationAdapter {
 	Texture pausedGraphic;
 	Texture[] footballs;
 	Ellipse footballOval;
-	Rectangle[] lowerBarriers;
-	Rectangle[] upperBarriers;
-	Texture goalSupport;
-	Texture goal;
+	Rectangle[] lowerBarriers, upperBarriers;
+	Texture goalSupport, goal;
 	Circle football;
 	int thisFootball;
 	float ballY;
@@ -38,21 +36,21 @@ public class MyGdxGame extends ApplicationAdapter {
 	float[] supportX = new float[numOfGoals];
 	float[] supportHeight = new float[numOfGoals];
 	float distanceBetweenGoals;
-	int score = 0;
+	int score = 0, scoringGoal = 0;
 	boolean collision;
-	int scoringGoal = 0;
-	BitmapFont font;
-	BitmapFont font1;
-	Rectangle pauseButton;
-	Rectangle mainMenuButton;
+	BitmapFont font, font1, font2;
+	Rectangle endlessButton, classicButton, storyButton, arcadeButton;
+	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton;
 
-    // Define game states
-    final int STATE_NOT_STARTED = 0;
-    final int STATE_RUNNING = 1;
-    final int STATE_GAME_OVER = 2;
-    final int STATE_PAUSED = 3;
 
-	
+	// Define game states
+	final int STATE_NOT_STARTED = -1;
+	final int STATE_START_SCREEN = 0;
+	final int STATE_RUNNING = 1;
+	final int STATE_GAME_OVER = 2;
+	final int STATE_PAUSED = 3;
+
+
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
@@ -77,14 +75,28 @@ public class MyGdxGame extends ApplicationAdapter {
 		font.getData().setScale(10);
 		font1 = new BitmapFont();
 		font1.setColor(Color.WHITE);
-		font1.getData().setScale(5); // Adjust font size
+		font1.getData().setScale(5);
+		font2 = new BitmapFont();
+		font2.setColor(Color.BLUE);
+		font2.getData().setScale(20);
 		startGame();
 		shapes = new ShapeRenderer();
 		collision = false;
 
+		// Define menu button areas
+		playGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 500, 500, 100);
+		endlessButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 750, 500, 100);
+		classicButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 600, 500, 100);
+		storyButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 300, 500, 100);
+		arcadeButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 150, 500, 100);
+		settingsButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 200, 500, 100);
+		exitButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 50, 500, 100);
+
+		gameState = STATE_START_SCREEN; // Start in menu screen
+
 		// Define button areas
 		pauseButton = new Rectangle(Gdx.graphics.getWidth() - 300, Gdx.graphics.getHeight() - 200, 150, 100);
-		mainMenuButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, Gdx.graphics.getHeight() / 2 + 200, 500, 150);
+		mainMenuButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, Gdx.graphics.getHeight() / 2 + 250, 500, 150);
 	}
 
 	public void startGame() {
@@ -125,9 +137,88 @@ public class MyGdxGame extends ApplicationAdapter {
 			}
 		}
 
+		// Handle the START SCREEN menu
+		if (gameState == STATE_START_SCREEN) {
+			font.draw(batch, "Flying Football", width / 2 - 200, height - 100);
+			batch.end();
+
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+			shapes.setColor(Color.BLACK); shapes.rect(playGameButton.x, playGameButton.y, playGameButton.width, playGameButton.height);
+			shapes.setColor(Color.GRAY); shapes.rect(settingsButton.x, settingsButton.y, settingsButton.width, settingsButton.height);
+			shapes.setColor(Color.DARK_GRAY); shapes.rect(exitButton.x, exitButton.y, exitButton.width, exitButton.height);
+			shapes.end();
+
+			batch.begin();
+
+			font1.draw(batch, "Play Game", playGameButton.x + 80, playGameButton.y + 100);
+			font1.draw(batch, "Settings", settingsButton.x + 80, settingsButton.y + 100);
+			font1.draw(batch, "Exit", exitButton.x + 80, exitButton.y + 100);
+
+			batch.end();
+
+			Boolean settingsTouched = Boolean.FALSE;
+
+			if (Gdx.input.justTouched()) {
+				float touchX = Gdx.input.getX();
+				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
+
+				if (playGameButton.contains(touchX, touchY)) {
+					gameState = STATE_NOT_STARTED;
+				} else if (settingsButton.contains(touchX, touchY)) {
+					settingsTouched = Boolean.TRUE;
+				} else if (exitButton.contains(touchX, touchY)) {
+					Gdx.app.exit(); // Close game
+				}
+			}
+
+			if (settingsTouched == Boolean.TRUE) {
+				batch.begin();
+				font2.draw(batch, "Settings Coming Soon 💀", width / 2 - 500, height / 2 + 200);
+				batch.end();
+			}
+
+			return;
+		} else if (gameState == STATE_NOT_STARTED) {
+			font.draw(batch, "Flying Football", width / 2 - 200, height - 100);
+			batch.end();
+
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+			shapes.setColor(Color.ORANGE); shapes.rect(endlessButton.x, endlessButton.y, endlessButton.width, endlessButton.height);
+			shapes.setColor(Color.GREEN); shapes.rect(classicButton.x, classicButton.y, classicButton.width, classicButton.height);
+			shapes.setColor(Color.BLUE); shapes.rect(storyButton.x, storyButton.y, storyButton.width, storyButton.height);
+			shapes.setColor(Color.RED); shapes.rect(arcadeButton.x, arcadeButton.y, arcadeButton.width, arcadeButton.height);
+			shapes.end();
+
+			batch.begin();
+
+			font1.draw(batch, "Endless", endlessButton.x + 80, endlessButton.y + 100);
+			font1.draw(batch, "Classic", classicButton.x + 80, classicButton.y + 100);
+			font1.draw(batch, "Story", storyButton.x + 80, storyButton.y + 100);
+			font1.draw(batch, "Arcade", arcadeButton.x + 80, arcadeButton.y + 100);
+
+			batch.end();
+			if (Gdx.input.justTouched()) {
+				float touchX = Gdx.input.getX();
+				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
+
+				if (endlessButton.contains(touchX, touchY)) {
+					gameState = STATE_RUNNING; // Placeholder for endless mode
+					velocity = 0;  // Ensure velocity starts from 0
+				} else if (classicButton.contains(touchX, touchY)) {
+					gameState = STATE_RUNNING; // Start current game mode
+					velocity = 0;  // Ensure velocity starts from 0
+				} else if (storyButton.contains(touchX, touchY) || arcadeButton.contains(touchX, touchY)) {
+					batch.begin();
+					font2.draw(batch, "Coming Soon", width / 2 - 300, height / 2 + 100);
+					batch.end();
+				}
+			}
+		}
+
+
 		// **PAUSED STATE**: Stop all movement and show menu
 		if (gameState == STATE_PAUSED) {
-			batch.setColor(1, 1, 1, 0.4f); // White with 40% opacity
+			batch.setColor(1, 1, 1, 0.9f); // White with 90% opacity
 			batch.draw(pausedGraphic, 0, 0, width, height); // Draw pause overlay
 			batch.setColor(1, 1, 1, 1); // Reset color to full opacity after drawing
 			batch.end();
@@ -138,7 +229,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			shapes.end();
 
 			batch.begin();
-			font1.draw(batch, "Main Menu", mainMenuButton.x + 20, mainMenuButton.y + 60); // Draw menu text
+			font1.draw(batch, "Main Menu", mainMenuButton.x + 80, mainMenuButton.y + 100); // Draw menu text
 			batch.end();
 
 			// Resume when clicking **anywhere except main menu**
@@ -195,21 +286,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				velocity = 0;
 				ballY = 100;
 			}
-
-		} else if (gameState == STATE_PAUSED) {
-			batch.draw(pausedGraphic, centreX, centreY, 400, 300);  // Draw pause overlay
-
-			// Draw Main Menu button
-			font1.draw(batch, "Main Menu", mainMenuButton.x + 20, mainMenuButton.y + 60);
-
-			// Stop game physics while paused
-			batch.end();
-			return; // Prevent further game updates
-		} else if (gameState == STATE_NOT_STARTED) {
-			if (Gdx.input.justTouched()) {
-				gameState = STATE_RUNNING;
-				velocity = 0;  // Ensure velocity starts from 0
-			}
 		} else if (gameState == STATE_GAME_OVER) {
 
 			float scaleFactor = 2f; // Adjust this to increase or decrease the size
@@ -246,7 +322,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		shapes.setColor(Color.BLACK);
 		*/
 
-        footballOval.set(centreX, ballY, 300, 200);
+		footballOval.set(centreX, ballY, 300, 200);
 		//shapes.ellipse(footballOval.x, footballOval.y, footballOval.width, footballOval.height);
 		football.set(footballOval.x, footballOval.y, 100);
 
@@ -270,5 +346,4 @@ public class MyGdxGame extends ApplicationAdapter {
 		shapes.end();
 	}
 }
-
 
