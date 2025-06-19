@@ -2,6 +2,8 @@ package com.has_akh.flying_football;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -11,8 +13,10 @@ import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Ellipse;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.ScreenUtils;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Random;
 
 public class MyGdxGame extends ApplicationAdapter {
@@ -39,8 +43,9 @@ public class MyGdxGame extends ApplicationAdapter {
 	int score = 0, scoringGoal = 0;
 	boolean collision;
 	BitmapFont font, font1, font2;
-	Rectangle endlessButton, classicButton, storyButton, arcadeButton;
+	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton;
 	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton;
+	private String enteredUsername = null;
 
 
 	// Define game states
@@ -49,6 +54,9 @@ public class MyGdxGame extends ApplicationAdapter {
 	final int STATE_RUNNING = 1;
 	final int STATE_GAME_OVER = 2;
 	final int STATE_PAUSED = 3;
+	final int STATE_OTHER_SCREEN = 4;
+	final int STATE_SETTINGS_SCREEN = 5;
+	final int STATE_LEADERBOARD_SCREEN = 6;
 
 
 	@Override
@@ -78,10 +86,15 @@ public class MyGdxGame extends ApplicationAdapter {
 		font1.getData().setScale(5);
 		font2 = new BitmapFont();
 		font2.setColor(Color.BLUE);
-		font2.getData().setScale(20);
+		font2.getData().setScale(15);
 		startGame();
 		shapes = new ShapeRenderer();
 		collision = false;
+
+		FileHandle scoresFile = Gdx.files.local("scores.txt");
+		if (!scoresFile.exists()) {
+			scoresFile.writeString("", false);
+		}
 
 		// Define menu button areas
 		playGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 500, 500, 100);
@@ -91,6 +104,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		arcadeButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 150, 500, 100);
 		settingsButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 200, 500, 100);
 		exitButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 50, 500, 100);
+		leaderboardButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 350, 500, 100);
 
 		gameState = STATE_START_SCREEN; // Start in menu screen
 
@@ -110,6 +124,16 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 	}
 
+	private void restartGame() {
+		gameState = STATE_RUNNING;
+		startGame();
+		score = 0;
+		scoringGoal = 0;
+		velocity = 0;
+		ballY = (Gdx.graphics.getHeight() / 2) - 100;
+		enteredUsername = null; // Reset for next input
+	}
+
 	@Override
 	public void render () {
 		int width = Gdx.graphics.getWidth();
@@ -119,6 +143,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		batch.begin();
 		batch.draw(background, 0, 0, width, height);
+		batch.end();
 
 		if (score < 1) {
 			goalVelocity = 5;
@@ -130,7 +155,6 @@ public class MyGdxGame extends ApplicationAdapter {
 		if (gameState == STATE_RUNNING && Gdx.input.justTouched()) {
 			if (pauseButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
 				gameState = STATE_PAUSED; // **Properly pauses the game**
-				batch.end();
 				return; // **Stop further updates**
 			} else {
 				velocity = -10; // Jump when clicking elsewhere
@@ -139,11 +163,13 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		// Handle the START SCREEN menu
 		if (gameState == STATE_START_SCREEN) {
-			font.draw(batch, "Flying Football", width / 2 - 200, height - 100);
+			batch.begin();
+			font.draw(batch, "Flying Football", width / 2 - 400, height - 100);
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
 			shapes.setColor(Color.BLACK); shapes.rect(playGameButton.x, playGameButton.y, playGameButton.width, playGameButton.height);
+			shapes.setColor(Color.YELLOW); shapes.rect(leaderboardButton.x, leaderboardButton.y, leaderboardButton.width, leaderboardButton.height);
 			shapes.setColor(Color.GRAY); shapes.rect(settingsButton.x, settingsButton.y, settingsButton.width, settingsButton.height);
 			shapes.setColor(Color.DARK_GRAY); shapes.rect(exitButton.x, exitButton.y, exitButton.width, exitButton.height);
 			shapes.end();
@@ -151,12 +177,11 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 
 			font1.draw(batch, "Play Game", playGameButton.x + 80, playGameButton.y + 100);
+			font1.draw(batch, "Leaderboard", leaderboardButton.x + 80, leaderboardButton.y + 100);
 			font1.draw(batch, "Settings", settingsButton.x + 80, settingsButton.y + 100);
 			font1.draw(batch, "Exit", exitButton.x + 80, exitButton.y + 100);
 
 			batch.end();
-
-			Boolean settingsTouched = Boolean.FALSE;
 
 			if (Gdx.input.justTouched()) {
 				float touchX = Gdx.input.getX();
@@ -165,20 +190,19 @@ public class MyGdxGame extends ApplicationAdapter {
 				if (playGameButton.contains(touchX, touchY)) {
 					gameState = STATE_NOT_STARTED;
 				} else if (settingsButton.contains(touchX, touchY)) {
-					settingsTouched = Boolean.TRUE;
+					gameState = STATE_SETTINGS_SCREEN;
 				} else if (exitButton.contains(touchX, touchY)) {
 					Gdx.app.exit(); // Close game
+				} else if (leaderboardButton.contains(touchX, touchY)) {
+					gameState = STATE_LEADERBOARD_SCREEN; // Switch to leaderboard screen
 				}
 			}
 
-			if (settingsTouched == Boolean.TRUE) {
-				batch.begin();
-				font2.draw(batch, "Settings Coming Soon 💀", width / 2 - 500, height / 2 + 200);
-				batch.end();
-			}
-
 			return;
-		} else if (gameState == STATE_NOT_STARTED) {
+		}
+
+		if (gameState == STATE_NOT_STARTED) {
+			batch.begin();
 			font.draw(batch, "Flying Football", width / 2 - 200, height - 100);
 			batch.end();
 
@@ -208,16 +232,36 @@ public class MyGdxGame extends ApplicationAdapter {
 					gameState = STATE_RUNNING; // Start current game mode
 					velocity = 0;  // Ensure velocity starts from 0
 				} else if (storyButton.contains(touchX, touchY) || arcadeButton.contains(touchX, touchY)) {
-					batch.begin();
-					font2.draw(batch, "Coming Soon", width / 2 - 300, height / 2 + 100);
-					batch.end();
+					gameState = STATE_OTHER_SCREEN;
 				}
 			}
 		}
 
+		if (gameState == STATE_SETTINGS_SCREEN) {
+			batch.begin();
+			font2.draw(batch, "Settings Coming Soon 💀", width / 2 - 700, height / 2 + 200);
+			batch.end();
+
+			if (Gdx.input.justTouched()) {
+				gameState = STATE_START_SCREEN; // Return to the main menu
+			}
+			return;
+		}
+
+		if (gameState == STATE_OTHER_SCREEN) {
+			batch.begin();
+			font2.draw(batch, "Coming Soon", width / 2 - 300, height / 2 + 100);
+			batch.end();
+
+			if (Gdx.input.justTouched()) {
+				gameState = STATE_START_SCREEN; // Return to the main menu
+			}
+			return;
+		}
 
 		// **PAUSED STATE**: Stop all movement and show menu
 		if (gameState == STATE_PAUSED) {
+			batch.begin();
 			batch.setColor(1, 1, 1, 0.9f); // White with 90% opacity
 			batch.draw(pausedGraphic, 0, 0, width, height); // Draw pause overlay
 			batch.setColor(1, 1, 1, 1); // Reset color to full opacity after drawing
@@ -236,6 +280,8 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (Gdx.input.justTouched()) {
 				if (!mainMenuButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
 					gameState = STATE_RUNNING; // Resume game
+				} else {
+					gameState = STATE_START_SCREEN; // Return to the main menu
 				}
 			}
 			return; // **Stops all further updates while paused**
@@ -254,6 +300,8 @@ public class MyGdxGame extends ApplicationAdapter {
 				}
 			}
 
+			batch.begin();
+
 			for (int i = 0; i < numOfGoals; i++) {
 
 				if (supportX[i] < -goal.getWidth()) {
@@ -269,66 +317,110 @@ public class MyGdxGame extends ApplicationAdapter {
 				upperBarriers[i].set(supportX[i], supportHeight[i] + 500, (float) goal.getWidth() /2, height - supportHeight[i] - 400);
 			}
 
-			if (ballY >= (height-100)) {
-				ballY = height - 100;
-			}
+			batch.end();
 
-			if (Gdx.input.isTouched()) {
-				thisFootball = 1;
-			} else {
-				thisFootball = 0;
-			}
 
-			if (ballY > 0) {
-				velocity++;
-				ballY -= velocity;
-			} else {
-				velocity = 0;
-				ballY = 100;
-			}
-		} else if (gameState == STATE_GAME_OVER) {
+			batch.begin();
+			batch.draw(footballs[thisFootball], centreX, ballY, 300, 200);
+			batch.end();
 
-			float scaleFactor = 2f; // Adjust this to increase or decrease the size
-			float newWidth = gameover.getWidth() * scaleFactor;
-			float newHeight = gameover.getHeight() * scaleFactor;
-			batch.draw(gameover, centreX - (newWidth / 4), centreY - (newHeight / 4), newWidth, newHeight);
+			ShapeRenderer shapeRenderer = new ShapeRenderer();
+			shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+			shapeRenderer.setColor(Color.BLUE); // Set blue background
+			shapeRenderer.rect(pauseButton.x, pauseButton.y, pauseButton.width, pauseButton.height); // Draw button shape
+			shapeRenderer.end();
 
-			if (Gdx.input.justTouched()) {
-				gameState = STATE_RUNNING;
-				startGame();
-				score = 0;
-				scoringGoal = 0;
-				velocity = 0;  // Reset velocity so the ball jumps
-				ballY = centreY;  // Reset ball position
-			}
-
-		}
-
-		batch.draw(footballs[thisFootball], centreX, ballY, 300, 200);
-		batch.end();
-
-		ShapeRenderer shapeRenderer = new ShapeRenderer();
-		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-		shapeRenderer.setColor(Color.BLUE); // Set blue background
-		shapeRenderer.rect(pauseButton.x, pauseButton.y, pauseButton.width, pauseButton.height); // Draw button shape
-		shapeRenderer.end();
-
-		// Draw pause symbol
-		batch.begin();
-		font1.draw(batch, "⏸️", pauseButton.x + 40, pauseButton.y + 80);
+			// Draw pause symbol
+			batch.begin();
+			font1.draw(batch, "⏸️", pauseButton.x + 20, pauseButton.y + 80);
 
 		/*
 		shapes.begin(ShapeRenderer.ShapeType.Line);
 		shapes.setColor(Color.BLACK);
 		*/
 
-		footballOval.set(centreX, ballY, 300, 200);
-		//shapes.ellipse(footballOval.x, footballOval.y, footballOval.width, footballOval.height);
-		football.set(footballOval.x, footballOval.y, 100);
+			footballOval.set(centreX, ballY, 300, 200);
+			//shapes.ellipse(footballOval.x, footballOval.y, footballOval.width, footballOval.height);
+			football.set(footballOval.x, footballOval.y, 100);
 
-		font.draw(batch, String.valueOf(score), centreX+150, height-200);
+			font.draw(batch, String.valueOf(score), centreX+150, height-200);
 
-		batch.end();
+			batch.end();
+
+		} else if (gameState == STATE_GAME_OVER) {
+
+			ArrayList<String> savedUsernames = getSavedUsernames();
+
+			float scaleFactor = 2f; // Adjust this to increase or decrease the size
+			float newWidth = gameover.getWidth() * scaleFactor;
+			float newHeight = gameover.getHeight() * scaleFactor;
+			batch.begin();
+			batch.draw(gameover, centreX - (newWidth / 4), centreY - (newHeight / 4), newWidth, newHeight);
+			font.draw(batch, "Select a Username or Enter a New One:", width / 2 - 300, height / 2 + 200);
+			int yOffset = 150;
+
+			for (String name : savedUsernames) {
+				font.draw(batch, name, width / 2 - 100, height / 2 + yOffset);
+				yOffset -= 50;
+			}
+			batch.end();
+
+			if (Gdx.input.justTouched()) {
+				float touchY = Gdx.graphics.getHeight() - Gdx.input.getY();
+				int selectedIndex = (int) ((height / 2 + 150 - touchY) / 50); // Detect selection
+
+				if (selectedIndex >= 0 && selectedIndex < savedUsernames.size()) {
+					saveScore(savedUsernames.get(selectedIndex), score); // Use selected username
+					restartGame();
+				} else {
+					getUserInput(); // Trigger keyboard input asynchronously
+				}
+			}
+
+		}
+
+		if (gameState == STATE_LEADERBOARD_SCREEN) {
+			ArrayList<String> topScores = getTopScores();
+
+			batch.begin();
+			font.draw(batch, "Leaderboard", width / 2 - 200, height - 200);
+			int yOffset = 150;
+
+			for (String entry : topScores) {
+				font.draw(batch, entry, width / 2 - 100, height - yOffset);
+				yOffset += 50;
+			}
+			batch.end();
+
+			if (Gdx.input.justTouched()) {
+				gameState = STATE_START_SCREEN; // Return to the main menu
+			}
+			return;
+
+		}
+
+		if (ballY >= (height-100)) {
+			ballY = height - 100;
+		}
+
+		if (Gdx.input.isTouched()) {
+			thisFootball = 1;
+		} else {
+			thisFootball = 0;
+		}
+
+		if (ballY > 0) {
+			velocity++;
+			ballY -= velocity;
+		} else {
+			velocity = 0;
+			ballY = 100;
+		}
+
+		if (enteredUsername != null) {
+			saveScore(enteredUsername, score);
+			restartGame();
+		}
 
 		for (int i = 0; i < numOfGoals; i++) {
 			//shapes.rect(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i] - 200);
@@ -343,7 +435,74 @@ public class MyGdxGame extends ApplicationAdapter {
 		if (collision) {
 			collision = false;
 		}
+
 		shapes.end();
 	}
+
+	public void saveScore(String username, int score) {
+		FileHandle scoresFile = Gdx.files.local("scores.txt");
+		scoresFile.writeString(username + " " + score + "\n", true); // Append scores
+	}
+
+	public ArrayList<String> getSavedUsernames() {
+		FileHandle scoresFile = Gdx.files.local("scores.txt");
+		String data = scoresFile.readString();
+
+		ArrayList<String> usernames = new ArrayList<>();
+		for (String line : data.split("\n")) {
+			if (!line.isEmpty()) {
+				String[] parts = line.split(" ");
+				if (!usernames.contains(parts[0])) { // Avoid duplicates
+					usernames.add(parts[0]);
+				}
+			}
+		}
+		return usernames;
+	}
+
+	public ArrayList<String> getTopScores() {
+		FileHandle scoresFile = Gdx.files.local("scores.txt");
+		String data = scoresFile.readString();
+
+		ArrayList<String> scores = new ArrayList<>();
+		for (String line : data.split("\n")) {
+			if (!line.isEmpty()) {
+				scores.add(line);
+			}
+		}
+
+		// Sort scores in descending order
+		Collections.sort(scores, new Comparator<String>() {
+			@Override
+			public int compare(String a, String b) {
+				int scoreA = Integer.parseInt(a.split(" ")[1]);
+				int scoreB = Integer.parseInt(b.split(" ")[1]);
+				return Integer.compare(scoreB, scoreA); // Sort descending
+			}
+		});
+
+		return scores;
+	}
+
+	public void getUserInput() {
+		Gdx.input.getTextInput(new Input.TextInputListener() {
+			@Override
+			public void input(String text) {
+				if (text.length() > 5) {
+					text = text.substring(0, 5); // Limit to 5 characters
+				}
+				enteredUsername = text;
+				saveScore(enteredUsername, score); // Save score locally
+				gameState = STATE_LEADERBOARD_SCREEN; // Redirect to leaderboard screen
+			}
+
+			@Override
+			public void canceled() {
+				enteredUsername = null; // Reset if user cancels input
+				gameState = STATE_GAME_OVER;
+			}
+		}, "Enter Username", "", "Max 5 characters");
+	}
+
 }
 
