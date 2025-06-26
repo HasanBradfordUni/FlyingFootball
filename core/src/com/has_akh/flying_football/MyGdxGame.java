@@ -13,6 +13,7 @@ import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Ellipse;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,7 +43,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	float distanceBetweenGoals;
 	int score = 0, scoringGoal = 0;
 	boolean collision;
-	BitmapFont font, font1, font2;
+	BitmapFont font, font1, font2, leaderboardFont;
 	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton;
 	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton;
 	private String enteredUsername = null;
@@ -78,15 +79,40 @@ public class MyGdxGame extends ApplicationAdapter {
 		lowerBarriers = new Rectangle[numOfGoals];
 		upperBarriers = new Rectangle[numOfGoals];
 		football = new Circle();
-		font = new BitmapFont();
-		font.setColor(Color.WHITE);
-		font.getData().setScale(10);
-		font1 = new BitmapFont();
-		font1.setColor(Color.WHITE);
-		font1.getData().setScale(5);
-		font2 = new BitmapFont();
-		font2.setColor(Color.BLUE);
-		font2.getData().setScale(15);
+
+		try {
+			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
+			FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+
+			parameter.size = 36;
+			parameter.color = Color.WHITE;
+			font = generator.generateFont(parameter);
+
+			parameter.size = 18;
+			font1 = generator.generateFont(parameter);
+
+			parameter.size = 54;
+			font2 = generator.generateFont(parameter);
+
+			parameter.size = 11;
+			leaderboardFont = generator.generateFont(parameter);
+
+			generator.dispose();
+		} catch (Exception e) {
+			Gdx.app.log("Font Error", "Could not load font: " + e.getMessage());
+			font = new BitmapFont();
+			font.setColor(Color.WHITE);
+			font.getData().setScale(10);
+			font1 = new BitmapFont();
+			font1.setColor(Color.WHITE);
+			font1.getData().setScale(5);
+			font2 = new BitmapFont();
+			font2.setColor(Color.BLUE);
+			font2.getData().setScale(15);
+			leaderboardFont = new BitmapFont();
+			leaderboardFont.setColor(Color.WHITE);
+			leaderboardFont.getData().setScale(3);
+		}
 		startGame();
 		shapes = new ShapeRenderer();
 		collision = false;
@@ -348,47 +374,77 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.end();
 
 		} else if (gameState == STATE_GAME_OVER) {
-
 			ArrayList<String> savedUsernames = getSavedUsernames();
-
-			float scaleFactor = 2f; // Adjust this to increase or decrease the size
-			float newWidth = gameover.getWidth() * scaleFactor;
-			float newHeight = gameover.getHeight() * scaleFactor;
-			batch.begin();
-			batch.draw(gameover, centreX - (newWidth / 4), centreY - (newHeight / 4), newWidth, newHeight);
-			font.draw(batch, "Select a Username or Enter a New One:", width / 2 - 300, height / 2 + 200);
-			int yOffset = 150;
-
-			for (String name : savedUsernames) {
-				font.draw(batch, name, width / 2 - 100, height / 2 + yOffset);
-				yOffset -= 50;
-			}
 			batch.end();
 
-			if (Gdx.input.justTouched()) {
-				float touchY = Gdx.graphics.getHeight() - Gdx.input.getY();
-				int selectedIndex = (int) ((height / 2 + 150 - touchY) / 50); // Detect selection
+			float scaleFactor = 2f;
+			float newWidth = gameover.getWidth() * scaleFactor;
+			float newHeight = gameover.getHeight() * scaleFactor;
 
-				if (selectedIndex >= 0 && selectedIndex < savedUsernames.size()) {
-					saveScore(savedUsernames.get(selectedIndex), score); // Use selected username
-					restartGame();
+			// Step 1: Draw boxes first (ShapeRenderer)
+			int rowHeight = 60;
+			int boxHeight = 50;
+			int startY = height - 180;
+			float enterButtonY = 80;
+
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+			// Username boxes
+			for (int i = 0; i < savedUsernames.size(); i++) {
+				float boxY = startY - (i * rowHeight);
+				shapes.setColor(Color.LIGHT_GRAY);
+				shapes.rect(width / 2f - 220, boxY - 40, 440, boxHeight);
+			}
+
+			// Enter New Name button
+			shapes.setColor(Color.YELLOW);
+			shapes.rect(width / 2f - 220, enterButtonY, 440, 60);
+
+			shapes.end();
+
+			// Step 2: Draw everything else with SpriteBatch
+			batch.begin();
+			batch.draw(gameover, centreX - (newWidth / 4), centreY - (newHeight / 4), newWidth, newHeight);
+			font1.draw(batch, "Select a Username or Enter a New One:", 50, height - 100);
+
+			for (int i = 0; i < savedUsernames.size(); i++) {
+				float boxY = startY - (i * rowHeight);
+				font1.draw(batch, savedUsernames.get(i), width / 2f - 200, boxY);
+			}
+
+			font1.draw(batch, "Enter New Name", width / 2f - 150, enterButtonY + 40);
+			batch.end();
+
+			// Step 3: Handle input
+			if (Gdx.input.justTouched()) {
+				float touchX = Gdx.input.getX();
+				float touchY = height - Gdx.input.getY();
+
+				if (touchY >= enterButtonY && touchY <= enterButtonY + 60 &&
+						touchX >= width / 2f - 220 && touchX <= width / 2f + 220) {
+					getUserInput(); // open keyboard for new name
 				} else {
-					getUserInput(); // Trigger keyboard input asynchronously
+					int selectedIndex = (int) ((startY - touchY) / rowHeight);
+					if (selectedIndex >= 0 && selectedIndex < savedUsernames.size()) {
+						saveScore(savedUsernames.get(selectedIndex), score);
+						restartGame();
+					}
 				}
 			}
 
+			return;
 		}
 
 		if (gameState == STATE_LEADERBOARD_SCREEN) {
 			ArrayList<String> topScores = getTopScores();
 
 			batch.begin();
-			font.draw(batch, "Leaderboard", width / 2 - 200, height - 200);
-			int yOffset = 150;
+			font1.draw(batch, "Leaderboard", width / 2f - 150, height - 100); // Title with spacing
+			int yOffset = 0;
 
 			for (String entry : topScores) {
-				font.draw(batch, entry, width / 2 - 100, height - yOffset);
-				yOffset += 50;
+				leaderboardFont.draw(batch, entry, width / 2f - 200, height - 160 - yOffset);
+				yOffset += 60; // Proper spacing between rows
 			}
 			batch.end();
 

@@ -4,3 +4,9 @@ sourceCompatibility = 1.7
 sourceSets.main.java.srcDirs = [ "src/" ]
 
 eclipse.project.name = appName + "-core"
+
+dependencies {
+    implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+    // Add this:
+    implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+}
