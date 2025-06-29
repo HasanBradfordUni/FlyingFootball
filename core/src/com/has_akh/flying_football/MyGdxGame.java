@@ -58,6 +58,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	final int STATE_OTHER_SCREEN = 4;
 	final int STATE_SETTINGS_SCREEN = 5;
 	final int STATE_LEADERBOARD_SCREEN = 6;
+	final int STATE_RUNNING2 = 7;
 
 
 	@Override
@@ -84,17 +85,17 @@ public class MyGdxGame extends ApplicationAdapter {
 			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
 			FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
 
-			parameter.size = 36;
+			parameter.size = 80;
 			parameter.color = Color.WHITE;
 			font = generator.generateFont(parameter);
 
-			parameter.size = 18;
+			parameter.size = 50;
 			font1 = generator.generateFont(parameter);
 
-			parameter.size = 54;
+			parameter.size = 120;
 			font2 = generator.generateFont(parameter);
 
-			parameter.size = 11;
+			parameter.size = 30;
 			leaderboardFont = generator.generateFont(parameter);
 
 			generator.dispose();
@@ -202,10 +203,10 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.begin();
 
-			font1.draw(batch, "Play Game", playGameButton.x + 80, playGameButton.y + 100);
-			font1.draw(batch, "Leaderboard", leaderboardButton.x + 80, leaderboardButton.y + 100);
-			font1.draw(batch, "Settings", settingsButton.x + 80, settingsButton.y + 100);
-			font1.draw(batch, "Exit", exitButton.x + 80, exitButton.y + 100);
+			font1.draw(batch, "Play Game", playGameButton.x + 50, playGameButton.y + 60);
+			font1.draw(batch, "Leaderboard", leaderboardButton.x + 50, leaderboardButton.y + 60);
+			font1.draw(batch, "Settings", settingsButton.x + 50, settingsButton.y + 60);
+			font1.draw(batch, "Exit", exitButton.x + 50, exitButton.y + 60);
 
 			batch.end();
 
@@ -241,10 +242,10 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.begin();
 
-			font1.draw(batch, "Endless", endlessButton.x + 80, endlessButton.y + 100);
-			font1.draw(batch, "Classic", classicButton.x + 80, classicButton.y + 100);
-			font1.draw(batch, "Story", storyButton.x + 80, storyButton.y + 100);
-			font1.draw(batch, "Arcade", arcadeButton.x + 80, arcadeButton.y + 100);
+			font1.draw(batch, "Endless", endlessButton.x + 50, endlessButton.y + 60);
+			font1.draw(batch, "Classic", classicButton.x + 50, classicButton.y + 60);
+			font1.draw(batch, "Story", storyButton.x + 50, storyButton.y + 60);
+			font1.draw(batch, "Arcade", arcadeButton.x + 50, arcadeButton.y + 60);
 
 			batch.end();
 			if (Gdx.input.justTouched()) {
@@ -252,10 +253,10 @@ public class MyGdxGame extends ApplicationAdapter {
 				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
 
 				if (endlessButton.contains(touchX, touchY)) {
-					gameState = STATE_RUNNING; // Placeholder for endless mode
+					gameState = STATE_RUNNING2; // Start endless game mode
 					velocity = 0;  // Ensure velocity starts from 0
 				} else if (classicButton.contains(touchX, touchY)) {
-					gameState = STATE_RUNNING; // Start current game mode
+					gameState = STATE_RUNNING; // Start classic game mode
 					velocity = 0;  // Ensure velocity starts from 0
 				} else if (storyButton.contains(touchX, touchY) || arcadeButton.contains(touchX, touchY)) {
 					gameState = STATE_OTHER_SCREEN;
@@ -313,7 +314,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			return; // **Stops all further updates while paused**
 		}
 
-		if (gameState == STATE_RUNNING) {
+		if ((gameState == STATE_RUNNING) || (gameState == STATE_RUNNING2)) {
 
 			if (supportX[scoringGoal] < centreX) {
 				score++;
@@ -482,9 +483,12 @@ public class MyGdxGame extends ApplicationAdapter {
 			//shapes.rect(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i] - 200);
 			//shapes.rect(supportX[i], supportHeight[i] + 500, (float) goal.getWidth() /2, height - supportHeight[i] - 400);
 			if (Intersector.overlaps(football, lowerBarriers[i]) || Intersector.overlaps(football, upperBarriers[i])) {
-				Gdx.app.log("Collision", "Yes!");
-				collision = true;
-				gameState = STATE_GAME_OVER;
+				if (gameState == STATE_RUNNING) {
+					collision = true;
+					gameState = STATE_GAME_OVER;
+				} else if (gameState == STATE_RUNNING2) {
+					score--;
+				}
 			}
 		}
 
