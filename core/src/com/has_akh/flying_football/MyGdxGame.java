@@ -15,6 +15,7 @@ import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -45,8 +46,9 @@ public class MyGdxGame extends ApplicationAdapter {
 	boolean collision;
 	BitmapFont font, font1, font2, leaderboardFont;
 	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton;
-	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton;
+	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton;
 	private String enteredUsername = null;
+	int collisionCooldown = 0;
 
 
 	// Define game states
@@ -59,6 +61,9 @@ public class MyGdxGame extends ApplicationAdapter {
 	final int STATE_SETTINGS_SCREEN = 5;
 	final int STATE_LEADERBOARD_SCREEN = 6;
 	final int STATE_RUNNING2 = 7;
+	private int previousGameMode;
+	private String filename;
+	private FileHandle scoresFile, endlessScoresFile;
 
 
 	@Override
@@ -118,9 +123,13 @@ public class MyGdxGame extends ApplicationAdapter {
 		shapes = new ShapeRenderer();
 		collision = false;
 
-		FileHandle scoresFile = Gdx.files.local("scores.txt");
+		scoresFile = Gdx.files.local("scores.txt");
 		if (!scoresFile.exists()) {
 			scoresFile.writeString("", false);
+		}
+		endlessScoresFile = Gdx.files.local("endless_scores.txt");
+		if (!endlessScoresFile.exists()) {
+			endlessScoresFile.writeString("", false);
 		}
 
 		// Define menu button areas
@@ -132,6 +141,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		settingsButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 200, 500, 100);
 		exitButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 50, 500, 100);
 		leaderboardButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 350, 500, 100);
+		endGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, Gdx.graphics.getHeight() / 2 + 50, 500, 150);
 
 		gameState = STATE_START_SCREEN; // Start in menu screen
 
@@ -178,13 +188,13 @@ public class MyGdxGame extends ApplicationAdapter {
 			goalVelocity = 2 * Math.round(3 + (float) Math.sin(score * 0.2) * 2);
 		}
 
-		// Check for pause button click **before updating physics**
-		if (gameState == STATE_RUNNING && Gdx.input.justTouched()) {
+		if ((gameState == STATE_RUNNING || gameState == STATE_RUNNING2) && Gdx.input.justTouched()) {
 			if (pauseButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
-				gameState = STATE_PAUSED; // **Properly pauses the game**
-				return; // **Stop further updates**
+				previousGameMode = gameState;
+				gameState = STATE_PAUSED;
+				return;
 			} else {
-				velocity = -10; // Jump when clicking elsewhere
+				velocity = -10;
 			}
 		}
 
@@ -195,10 +205,14 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
-			shapes.setColor(Color.BLACK); shapes.rect(playGameButton.x, playGameButton.y, playGameButton.width, playGameButton.height);
-			shapes.setColor(Color.YELLOW); shapes.rect(leaderboardButton.x, leaderboardButton.y, leaderboardButton.width, leaderboardButton.height);
-			shapes.setColor(Color.GRAY); shapes.rect(settingsButton.x, settingsButton.y, settingsButton.width, settingsButton.height);
-			shapes.setColor(Color.DARK_GRAY); shapes.rect(exitButton.x, exitButton.y, exitButton.width, exitButton.height);
+			shapes.setColor(Color.BLACK);
+			shapes.rect(playGameButton.x, playGameButton.y, playGameButton.width, playGameButton.height);
+			shapes.setColor(new Color(0.8f, 0.6f, 0.1f, 1f)); // Mustard yellow
+			shapes.rect(leaderboardButton.x, leaderboardButton.y, leaderboardButton.width, leaderboardButton.height);
+			shapes.setColor(Color.GRAY);
+			shapes.rect(settingsButton.x, settingsButton.y, settingsButton.width, settingsButton.height);
+			shapes.setColor(Color.DARK_GRAY);
+			shapes.rect(exitButton.x, exitButton.y, exitButton.width, exitButton.height);
 			shapes.end();
 
 			batch.begin();
@@ -303,6 +317,28 @@ public class MyGdxGame extends ApplicationAdapter {
 			font1.draw(batch, "Main Menu", mainMenuButton.x + 80, mainMenuButton.y + 100); // Draw menu text
 			batch.end();
 
+			if (gameState == STATE_PAUSED && previousGameMode == STATE_RUNNING2) {
+				shapes.begin(ShapeRenderer.ShapeType.Filled);
+				shapes.setColor(Color.FIREBRICK); // Reddish for emphasis
+				shapes.rect(endGameButton.x, endGameButton.y, endGameButton.width, endGameButton.height);
+				shapes.end();
+
+				batch.begin();
+				font1.draw(batch, "End Endless Game", endGameButton.x + 30, endGameButton.y + 50);
+				batch.end();
+
+				if (Gdx.input.justTouched()) {
+					float touchX = Gdx.input.getX();
+					float touchY = height - Gdx.input.getY();
+
+					if (endGameButton.contains(touchX, touchY)) {
+						previousGameMode = STATE_RUNNING2;
+						gameState = STATE_GAME_OVER;
+						return;
+					}
+				}
+			}
+
 			// Resume when clicking **anywhere except main menu**
 			if (Gdx.input.justTouched()) {
 				if (!mainMenuButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
@@ -375,8 +411,13 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.end();
 
 		} else if (gameState == STATE_GAME_OVER) {
-			ArrayList<String> savedUsernames = getSavedUsernames();
-			batch.end();
+			if (previousGameMode == STATE_RUNNING) {
+				filename = "scores.txt";
+			} else if (previousGameMode == STATE_RUNNING2) {
+				filename = "endless_scores.txt";
+			}
+
+			ArrayList<String> savedUsernames = getSavedUsernames(filename);
 
 			float scaleFactor = 2f;
 			float newWidth = gameover.getWidth() * scaleFactor;
@@ -416,6 +457,11 @@ public class MyGdxGame extends ApplicationAdapter {
 			font1.draw(batch, "Enter New Name", width / 2f - 150, enterButtonY + 40);
 			batch.end();
 
+			if (enteredUsername != null) {
+				saveScore(enteredUsername, score, filename);
+				restartGame();
+			}
+
 			// Step 3: Handle input
 			if (Gdx.input.justTouched()) {
 				float touchX = Gdx.input.getX();
@@ -427,7 +473,7 @@ public class MyGdxGame extends ApplicationAdapter {
 				} else {
 					int selectedIndex = (int) ((startY - touchY) / rowHeight);
 					if (selectedIndex >= 0 && selectedIndex < savedUsernames.size()) {
-						saveScore(savedUsernames.get(selectedIndex), score);
+						saveScore(savedUsernames.get(selectedIndex), score, filename);
 						restartGame();
 					}
 				}
@@ -437,7 +483,11 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		if (gameState == STATE_LEADERBOARD_SCREEN) {
-			ArrayList<String> topScores = getTopScores();
+			if (filename == null) {
+				filename = "scores.txt";
+			}
+
+			ArrayList<String> topScores = getTopScores(filename);
 
 			batch.begin();
 			font1.draw(batch, "Leaderboard", width / 2f - 150, height - 100); // Title with spacing
@@ -456,8 +506,20 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		}
 
-		if (ballY >= (height-100)) {
-			ballY = height - 100;
+		if ((gameState == STATE_RUNNING || gameState == STATE_RUNNING2)) {
+			velocity++;
+			ballY -= velocity;
+
+			// Bounce if ball hits the bottom
+			if (ballY <= 0) {
+				ballY = 0;
+				velocity = -10; // Bounce upward
+			}
+
+			// Clamp ball so it doesn't go too high
+			if (ballY >= height - 100) {
+				ballY = height - 100;
+			}
 		}
 
 		if (Gdx.input.isTouched()) {
@@ -466,28 +528,21 @@ public class MyGdxGame extends ApplicationAdapter {
 			thisFootball = 0;
 		}
 
-		if (ballY > 0) {
-			velocity++;
-			ballY -= velocity;
-		} else {
-			velocity = 0;
-			ballY = 100;
-		}
-
-		if (enteredUsername != null) {
-			saveScore(enteredUsername, score);
-			restartGame();
-		}
-
 		for (int i = 0; i < numOfGoals; i++) {
 			//shapes.rect(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i] - 200);
 			//shapes.rect(supportX[i], supportHeight[i] + 500, (float) goal.getWidth() /2, height - supportHeight[i] - 400);
 			if (Intersector.overlaps(football, lowerBarriers[i]) || Intersector.overlaps(football, upperBarriers[i])) {
 				if (gameState == STATE_RUNNING) {
 					collision = true;
+					previousGameMode = STATE_RUNNING;
 					gameState = STATE_GAME_OVER;
-				} else if (gameState == STATE_RUNNING2) {
-					score--;
+					return;
+				}
+				else if (gameState == STATE_RUNNING2) {
+					if (collisionCooldown <= 0) {
+						score--;
+						collisionCooldown = 20; // 20 frames before next deduction
+					}
 				}
 			}
 		}
@@ -496,17 +551,28 @@ public class MyGdxGame extends ApplicationAdapter {
 			collision = false;
 		}
 
+		if (collisionCooldown > 0) {
+			collisionCooldown--;
+		}
+
 		shapes.end();
 	}
 
-	public void saveScore(String username, int score) {
-		FileHandle scoresFile = Gdx.files.local("scores.txt");
-		scoresFile.writeString(username + " " + score + "\n", true); // Append scores
+	public void saveScore(String username, int score, String filename) {
+		if (filename.equals("scores.txt")) {
+			scoresFile.writeString(username + " " + score + "\n", true); // Append scores
+		} else if (filename.equals("endless_scores.txt")) {
+			endlessScoresFile.writeString(username + " " + score + "\n", true); // Append scores
+		}
 	}
 
-	public ArrayList<String> getSavedUsernames() {
-		FileHandle scoresFile = Gdx.files.local("scores.txt");
-		String data = scoresFile.readString();
+	public ArrayList<String> getSavedUsernames(String filename) {
+		String data = "";
+		if (filename.equals("scores.txt")) {
+			data = scoresFile.readString(); // Append scores
+		} else if (filename.equals("endless_scores.txt")) {
+			data = endlessScoresFile.readString(); // Append scores
+		}
 
 		ArrayList<String> usernames = new ArrayList<>();
 		for (String line : data.split("\n")) {
@@ -520,8 +586,8 @@ public class MyGdxGame extends ApplicationAdapter {
 		return usernames;
 	}
 
-	public ArrayList<String> getTopScores() {
-		FileHandle scoresFile = Gdx.files.local("scores.txt");
+	public ArrayList<String> getTopScores(String filename) {
+		FileHandle scoresFile = Gdx.files.local(filename);
 		String data = scoresFile.readString();
 
 		ArrayList<String> scores = new ArrayList<>();
@@ -552,7 +618,7 @@ public class MyGdxGame extends ApplicationAdapter {
 					text = text.substring(0, 5); // Limit to 5 characters
 				}
 				enteredUsername = text;
-				saveScore(enteredUsername, score); // Save score locally
+				saveScore(enteredUsername, score, filename); // Save score locally
 				gameState = STATE_LEADERBOARD_SCREEN; // Redirect to leaderboard screen
 			}
 
