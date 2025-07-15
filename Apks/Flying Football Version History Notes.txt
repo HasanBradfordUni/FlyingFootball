@@ -1,14 +1,16 @@
 Flying Football Version History Notes:
 
 Version 1.00 (Nov 2023)
-Initial development of the app. Created Sprite batches and Background visible on screen only. Started following tutorials series: https://www.youtube.com/playlist?list=PLxgX0Xe-eVYak1iBUEW7ES3e0fQfxOQw0
+Initial development of the app. Created Sprite batches and Background visible on screen only. Started following tutorials series: https://www.youtube.com/playlist?list=PLxgX0Xe-eVYak1iBUEW7ES3e0fQfxOQw0.
 
-Version 1.01
+Version 1.01 (Nov 2023)
+This version added the football (theme-based substitute for flappy bird) with 2 images. The visuals showed it switching between the 2 images every 250 milliseconds (1/4 or 0.25 seconds) and it was in the direct centre of the screen.
 
+Version 1.10 (Nov 2023)
+Added movement of the football based on user input. The football was still switching between images, however removed the 0.25 second delay so was now switching instantly. The football moves up a small amount when the player taps the screen and moves down automatically when the player isn't tapping the screen. It can go above the display, however it can't go below so sits at the bottom when falls all the way down. 
 
-Version 1.10
-
-Version 1.11
+Version 1.11 (Nov 2023)
+Updated movement of the football, didn't add anything else yet. Added top barrier now and moved bottom barrier slightly up so that football is fully visible when sitting at the bottom. Football images now only switch when the player taps, normally in state 1, but when the player taps, updates to state 2 showing image 2 then switches back when player lets go, if they hold, it stays in state 2 for longer.
 
 Version 1.20
 
