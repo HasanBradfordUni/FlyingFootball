@@ -45,8 +45,8 @@ public class MyGdxGame extends ApplicationAdapter {
 	int score = 0, scoringGoal = 0;
 	boolean collision;
 	BitmapFont font, font1, font2, leaderboardFont;
-	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton;
-	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton;
+	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton, ContinueGameButton;
+	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton;
 	private String enteredUsername = null;
 	int collisionCooldown = 0;
 
@@ -64,6 +64,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	private int previousGameMode;
 	private String filename;
 	private FileHandle scoresFile, endlessScoresFile;
+	private boolean showEndlessPrompt;
 
 
 	@Override
@@ -142,6 +143,9 @@ public class MyGdxGame extends ApplicationAdapter {
 		exitButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 50, 500, 100);
 		leaderboardButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 350, 500, 100);
 		endGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, Gdx.graphics.getHeight() / 2 + 50, 500, 150);
+		ContinueGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 500, Gdx.graphics.getHeight() / 2 + 50, 500, 150);
+		NewGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 + 500, Gdx.graphics.getHeight() / 2 + 50, 500, 100);
+
 
 		gameState = STATE_START_SCREEN; // Start in menu screen
 
@@ -158,6 +162,36 @@ public class MyGdxGame extends ApplicationAdapter {
 			supportHeight[i] = randomGenerator.nextInt(600);
 			lowerBarriers[i] = new Rectangle();
 			upperBarriers[i] = new Rectangle();
+		}
+	}
+
+	public void saveEndlessState() {
+		FileHandle file = Gdx.files.local("endless_state.txt");
+
+		StringBuilder data = new StringBuilder();
+		data.append(score).append(",").append(ballY).append(",").append(velocity).append("\n");
+		for (int i = 0; i < numOfGoals; i++) {
+			data.append(supportX[i]).append(",").append(supportHeight[i]).append("\n");
+		}
+
+		file.writeString(data.toString(), false);
+	}
+
+	public void loadEndlessState() {
+		FileHandle file = Gdx.files.local("endless_state.txt");
+		if (!file.exists()) return;
+
+		String[] lines = file.readString().split("\n");
+
+		String[] header = lines[0].split(",");
+		score = Integer.parseInt(header[0]);
+		ballY = Float.parseFloat(header[1]);
+		velocity = Float.parseFloat(header[2]);
+
+		for (int i = 1; i <= numOfGoals; i++) {
+			String[] parts = lines[i].split(",");
+			supportX[i - 1] = Float.parseFloat(parts[0]);
+			supportHeight[i - 1] = Float.parseFloat(parts[1]);
 		}
 	}
 
@@ -267,8 +301,14 @@ public class MyGdxGame extends ApplicationAdapter {
 				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
 
 				if (endlessButton.contains(touchX, touchY)) {
-					gameState = STATE_RUNNING2; // Start endless game mode
-					velocity = 0;  // Ensure velocity starts from 0
+					FileHandle file = Gdx.files.local("endless_state.txt");
+					if (file.exists()) {
+						gameState = STATE_OTHER_SCREEN; // Show prompt
+						showEndlessPrompt = true; // Use a boolean flag
+					} else {
+						gameState = STATE_RUNNING2;
+						velocity = 0;
+					}
 				} else if (classicButton.contains(touchX, touchY)) {
 					gameState = STATE_RUNNING; // Start classic game mode
 					velocity = 0;  // Ensure velocity starts from 0
@@ -294,6 +334,34 @@ public class MyGdxGame extends ApplicationAdapter {
 			font2.draw(batch, "Coming Soon", width / 2 - 300, height / 2 + 100);
 			batch.end();
 
+			if (showEndlessPrompt) {
+				shapes.begin(ShapeRenderer.ShapeType.Filled);
+				shapes.setColor(Color.GREEN); shapes.rect(NewGameButton.x, NewGameButton.y, NewGameButton.width, NewGameButton.height);
+				shapes.setColor(Color.BLUE); shapes.rect(ContinueGameButton.x, ContinueGameButton.y, ContinueGameButton.width, ContinueGameButton.height);
+				shapes.end();
+
+				batch.begin();
+
+				font1.draw(batch, "New Game", NewGameButton.x + 50, NewGameButton.y + 60);
+				font1.draw(batch, "Continue Game", ContinueGameButton.x + 50, ContinueGameButton.y + 60);
+
+				batch.end();
+
+				if (Gdx.input.justTouched()) {
+					float touchX = Gdx.input.getX();
+					float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
+
+					if (NewGameButton.contains(touchX, touchY)) {
+						Gdx.files.local("endless_state.txt").delete();
+						gameState = STATE_RUNNING2;
+						startGame();
+					} else if (ContinueGameButton.contains(touchX, touchY)) {
+						loadEndlessState();
+						gameState = STATE_RUNNING2;
+					}
+				}
+			}
+
 			if (Gdx.input.justTouched()) {
 				gameState = STATE_START_SCREEN; // Return to the main menu
 			}
@@ -318,6 +386,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.end();
 
 			if (gameState == STATE_PAUSED && previousGameMode == STATE_RUNNING2) {
+				saveEndlessState();
 				shapes.begin(ShapeRenderer.ShapeType.Filled);
 				shapes.setColor(Color.FIREBRICK); // Reddish for emphasis
 				shapes.rect(endGameButton.x, endGameButton.y, endGameButton.width, endGameButton.height);
@@ -332,6 +401,7 @@ public class MyGdxGame extends ApplicationAdapter {
 					float touchY = height - Gdx.input.getY();
 
 					if (endGameButton.contains(touchX, touchY)) {
+						Gdx.files.local("endless_state.txt").delete();
 						previousGameMode = STATE_RUNNING2;
 						gameState = STATE_GAME_OVER;
 						return;
