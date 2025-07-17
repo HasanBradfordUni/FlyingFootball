@@ -76,17 +76,26 @@ Added top barrier now and moved bottom barrier slightly up so that football is f
 Football images now only switch when the player taps, normally in state 1, but when the player taps, 
 updates to state 2 showing image 2 then switches back when player lets go, if they hold, it stays in state 2 for longer.  
 
-### Version 1.20
+### Version 1.20 (Nov 2023)
+Added 1 moving goal with support to the centre of the screen. 
+It appears when the player taps the screen and continues moving left, 
+then when the player taps again, it reappears in the centre, it can go off screen as well.  
 
-### Version 1.30
+### Version 1.30 (October 2024)
+Added more moving goals with random support heights so now there's 6 that loop around. 
+Football movement was adjusted so that it moves up higher with each tap (can now move to top of screen with 3 taps). 
+Also added a black outline around the football and goal supports, this was purely a testing feature and in preparation for collision detection later on.  
 
-### Version 1.31
+### Version 1.31 (October 2024)
+First step in changing the logo, nothing really changed gameplay wise.  
 
-### Version 1.32
+### Version 1.32 (October 2024)
+Logo was fully changed, nothing else changes then.  
 
-### Version 1.33
+### Version 1.33 (October 2024)
+Above goal barrier with outline was added, other than that, nothing else yet  
 
-### Version 1.40
+### Version 1.40 (October 2024)
 
 ### Version 1.50
 
