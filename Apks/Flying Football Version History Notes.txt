@@ -22,51 +22,54 @@ Version 1.31 (October 2024)
 First step in changing the logo, nothing really changed gameplay wise.
 
 Version 1.32 (October 2024)
-Logo was fully changed, nothing else changes then.
+Logo was fully changed, nothing else changed then.
 
 Version 1.33 (October 2024)
 Above goal barrier with outline was added, other than that, nothing else yet
 
 Version 1.40 (October 2024)
+Goals now start further out at the beginning (1 whole width of the display further). Lower barrier and ball outlines added with first stage of collision detection - at the moment just logs collision. 
 
-Version 1.50
+Version 1.50 (March 2025)
 
-Version 1.51
+Version 1.51 (April 2025)
 
-Version 1.52
+Version 1.52 (May 2025)
 
-Version 1.53
+Version 1.53 (May 2025)
 
-Version 1.54
+Version 1.54 (May 2025)
 
-Version 1.55
+Version 1.55 (May 2025)
 
-Version 1.60
+Version 1.60 (May 2025)
 
-Version 1.61
+Version 1.61 (May 2025)
 
-Version 1.62
+Version 1.62 (May 2025)
 
-Version 1.63
+Version 1.63 (May 2025)
 
-Version 1.64
+Version 1.64 (May 2025)
 
-Version 1.65
+Version 1.65 (May 2025)
 
-Version 1.66
+Version 1.66 (May 2025)
 
-Version 1.67
+Version 1.67 (June 2025)
 
-Version 1.70
+Version 1.70 (June 2025)
 
-Version 1.71
+Version 1.71 (June 2025)
 
-Version 1.72
+Version 1.72 (June 2025)
 
-Version 1.73
+Version 1.73 (June 2025)
 
-Version 1.74
+Version 1.74 (June 2025)
 
-Version 1.75
+Version 1.75 (July 2025)
 
-Version 1.76
+Version 1.76 (July 2025)
+
+Version 1.77 (July 2025)
