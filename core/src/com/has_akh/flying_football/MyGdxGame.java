@@ -49,6 +49,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton;
 	private String enteredUsername = null;
 	int collisionCooldown = 0;
+	int scoringBarrier = 0;
 
 
 	// Define game states
@@ -91,7 +92,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
 			FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
 
-			parameter.size = 80;
+			parameter.size = 100;
 			parameter.color = Color.WHITE;
 			font = generator.generateFont(parameter);
 
@@ -235,7 +236,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		// Handle the START SCREEN menu
 		if (gameState == STATE_START_SCREEN) {
 			batch.begin();
-			font.draw(batch, "Flying Football", width / 2 - 400, height - 100);
+			font.draw(batch, "Flying Football", width / 2 - 300, height - 100);
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -278,7 +279,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (gameState == STATE_NOT_STARTED) {
 			batch.begin();
-			font.draw(batch, "Flying Football", width / 2 - 200, height - 100);
+			font.draw(batch, "Flying Football", width / 2 - 300, height - 100);
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -305,6 +306,7 @@ public class MyGdxGame extends ApplicationAdapter {
 					if (file.exists()) {
 						gameState = STATE_OTHER_SCREEN; // Show prompt
 						showEndlessPrompt = true; // Use a boolean flag
+						return;
 					} else {
 						gameState = STATE_RUNNING2;
 						velocity = 0;
@@ -314,13 +316,14 @@ public class MyGdxGame extends ApplicationAdapter {
 					velocity = 0;  // Ensure velocity starts from 0
 				} else if (storyButton.contains(touchX, touchY) || arcadeButton.contains(touchX, touchY)) {
 					gameState = STATE_OTHER_SCREEN;
+					return;
 				}
 			}
 		}
 
 		if (gameState == STATE_SETTINGS_SCREEN) {
 			batch.begin();
-			font2.draw(batch, "Settings Coming Soon 💀", width / 2 - 700, height / 2 + 200);
+			font2.draw(batch, "Settings Coming Soon", width / 2 - 700, height / 2 + 200);
 			batch.end();
 
 			if (Gdx.input.justTouched()) {
@@ -354,6 +357,7 @@ public class MyGdxGame extends ApplicationAdapter {
 					if (NewGameButton.contains(touchX, touchY)) {
 						Gdx.files.local("endless_state.txt").delete();
 						gameState = STATE_RUNNING2;
+						score = 0;
 						startGame();
 					} else if (ContinueGameButton.contains(touchX, touchY)) {
 						loadEndlessState();
@@ -363,7 +367,13 @@ public class MyGdxGame extends ApplicationAdapter {
 			}
 
 			if (Gdx.input.justTouched()) {
-				gameState = STATE_START_SCREEN; // Return to the main menu
+				float touchX = Gdx.input.getX();
+				float touchY = height - Gdx.input.getY();
+
+				if (!NewGameButton.contains(touchX, touchY) && !ContinueGameButton.contains(touchX, touchY)) {
+					gameState = STATE_START_SCREEN; // Only return to menu if they tap outside
+					showEndlessPrompt = false;
+				}
 			}
 			return;
 		}
@@ -488,6 +498,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			}
 
 			ArrayList<String> savedUsernames = getSavedUsernames(filename);
+			scoringBarrier = 0;
 
 			float scaleFactor = 2f;
 			float newWidth = gameover.getWidth() * scaleFactor;
@@ -553,14 +564,22 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		if (gameState == STATE_LEADERBOARD_SCREEN) {
-			if (filename == null) {
+			String title_string = "";
+
+			if (filename == "endless_scores.txt") {
+				title_string = "Leaderboard (Endless)";
+			} else if (filename == null) {
 				filename = "scores.txt";
+				title_string = "Leaderboard (Classic)";
+			} else {
+				title_string = "Leaderboard (Classic)";
 			}
+
 
 			ArrayList<String> topScores = getTopScores(filename);
 
 			batch.begin();
-			font1.draw(batch, "Leaderboard", width / 2f - 150, height - 100); // Title with spacing
+			font1.draw(batch, title_string, width / 2f - 250, height - 50); // Title with spacing
 			int yOffset = 0;
 
 			for (String entry : topScores) {
@@ -609,9 +628,11 @@ public class MyGdxGame extends ApplicationAdapter {
 					return;
 				}
 				else if (gameState == STATE_RUNNING2) {
-					if (collisionCooldown <= 0) {
-						score--;
-						collisionCooldown = 20; // 20 frames before next deduction
+					if (gameState == STATE_RUNNING2) {
+						if (scoringBarrier == i) {
+							score--; // only subtract once per barrier
+							scoringBarrier = (scoringBarrier + 1) % numOfGoals; // update to next
+						}
 					}
 				}
 			}
