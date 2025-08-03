@@ -31,12 +31,16 @@ Version 1.40 (October 2024)
 Goals now start further out at the beginning (1 whole width of the display further). Lower barrier and ball outlines added with first stage of collision detection - at the moment just logs collision. 
 
 Version 1.50 (March 2025)
+Added Scoring system and text font. Reworked Collision detection and so now works fully as intended, nothing happens after collision yet though (just logs it). Barrier and Ball outlines still there for now.
 
 Version 1.51 (April 2025)
+Added scoring text, however not fully in center and score gets added when going through barriers as well currently. Barrier and Ball outlines still there for now.
 
 Version 1.52 (May 2025)
+Added Game Over Texture, New Game State for it and Collision logic. Restart logic not yet implemented so can't replay after Game Over currently. Barrier and Ball outlines still there for now.
 
 Version 1.53 (May 2025)
+Added Restart Game logic, however now a bug noticeable where the ball sticks to the bottom and can't be moved up by the player if it touches the bottom. Also jump of ball too high so can't actually go through goals. Barrier and Ball outlines still there for now.
 
 Version 1.54 (May 2025)
 
