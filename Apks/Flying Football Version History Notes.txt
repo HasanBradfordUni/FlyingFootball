@@ -43,8 +43,10 @@ Version 1.53 (May 2025)
 Added Restart Game logic, however now a bug noticeable where the ball sticks to the bottom and can't be moved up by the player if it touches the bottom. Also jump of ball too high so can't actually go through goals. Barrier and Ball outlines still there for now.
 
 Version 1.54 (May 2025)
+Some minor gameplay adjustments to make it easier. The goal velocity was decreased from 3 to 4. Ball jump up velocity was decreased from 30 to 10 so now the jumps are smaller and easier to control. Barrier heights were decreased slightly so now it's easier to go through without hitting them. Fixed ball sicking to bottom bug so moves up a bit (100 pixels) when hits bottom and can still be moved then.
 
 Version 1.55 (May 2025)
+Removed the barrier outlines (were only used for testing purposes) but may bring them back as a special togglable feature. Nothing else changed.
 
 Version 1.60 (May 2025)
 
