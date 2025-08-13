@@ -49,16 +49,22 @@ Version 1.55 (May 2025)
 Removed the barrier outlines (were only used for testing purposes) but may bring them back as a special togglable feature. Nothing else changed.
 
 Version 1.60 (May 2025)
+Reworked game speed logic so now increases with time (but also decreases at certain points, uses sine curve). Also increased height and width of game over graphic, however placement now misaligned (goes off screen towards right side).
 
 Version 1.61 (May 2025)
+Some minor graphical and gameplay changes. Decreased width between goals from 3 to 2.5. Realigned game over graphic so back in center. Also fixed alignment of score text so fully in center now. Also decreased height of barriers slightly so more room for ball to go through goal balancing gameplay more (decrease of distance between goals also balances gameplay).
 
 Version 1.62 (May 2025)
+Added quite a few changes here, the main addition being the pause menu and game state. First of all gamestate constants were added mapping to the different numberings of the now 4 gamestates. The "PAUSED" gamestate was added along with the pause button, main menu button (on pause screen) and new font size for these features. However, in this version the pause button doesn't work yet and the ball floats upwards and sticks to the top unless the pause button is tapped. 
 
 Version 1.63 (May 2025)
+Pause menu button graphics updated so now has a blue backing and looks like an actual button. Works now as well and pauses the game. A paused game graphic was added which displays when the game is paused (straight after tapping the pause button) and disappears when the game is unpaused - by tapping anywhere except the "Main Menu" button while on the pause screen. Main Menu button doesn't do anything yet (haven't yet added the main menu but will do soon) but doesn't resume the game either when tapped.
 
 Version 1.64 (May 2025)
+Just improved placement and visuals of "Main Menu" button, nothing else yet.
 
 Version 1.65 (May 2025)
+Added the Main Menu which loads when the app starts. Displays the game title and 3 buttons all arranged vertically in a center column, new font size created and used. The 3 buttons currently are "Play Game", "Settings" and "Exit". New font size set as Blue colour and size 50, used for text that flashes up after tapping "Settings" button - this text should stay there but need to fix that then. After pressing "Play Game" button, 4 new buttons flash up for the different game modes that will be coming soon, however these should also stay there and not just flash up, planning on fixing that next so can progress to actual game via "Play Game" then "Classic". "Exit" button closes the app as expected.
 
 Version 1.66 (May 2025)
 
