@@ -67,10 +67,13 @@ Version 1.65 (May 2025)
 Added the Main Menu which loads when the app starts. Displays the game title and 3 buttons all arranged vertically in a center column, new font size created and used. The 3 buttons currently are "Play Game", "Settings" and "Exit". New font size set as Blue colour and size 50, used for text that flashes up after tapping "Settings" button - this text should stay there but need to fix that then. After pressing "Play Game" button, 4 new buttons flash up for the different game modes that will be coming soon, however these should also stay there and not just flash up, planning on fixing that next so can progress to actual game via "Play Game" then "Classic". "Exit" button closes the app as expected.
 
 Version 1.66 (May 2025)
+Minor styling changes and new game state added. The positions of button and font sizes were adjusted slightly, as well as a new screen being added for the gamemode select to ensure it doesn't flash but appear as a permanent selection screen until tapped again to go back to the main menu. However, game crashes on this version straight after pressing "Play Game" and gamemode select screen doesn't appear yet.
 
 Version 1.67 (June 2025)
+Gamestates were re-adjusted and 2 new screens added. The gamemode select screen now works and lets you select a gamemode. Currently, both Classic mode and Endless mode buttons take the player to the main game and gameplay is the same as before. The "Main Menu" button on the pause menu still doesn't work however. Tapping on the Settings button on the main menu also goes to the settings screen which is just a coming soon message so far, albeit the text size and positioning is still a bit off for this. Story and Arcade mode buttons flash up a coming soon message but this also needs to be a permanent screen transition.
 
 Version 1.70 (June 2025)
+Added a scoring file as well as a leaderboard and all associated methods to record and display high scores. Leaderboard button was added as a yellow button on the main menu and can tap again from any of these screens (Leaderboard, Settings, etc.) to go back to the main menu. Main menu button on the pause menu also works now and goes back to the main menu. Text styling and visuals need a bit of work though. Also game mode coming soon messages still flash and now sends the player back to the main menu straight away. Leaderboard scores work but text displayed is too big and unorganised.
 
 Version 1.71 (June 2025)
 
