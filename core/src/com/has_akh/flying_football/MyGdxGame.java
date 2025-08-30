@@ -3,6 +3,7 @@ package com.has_akh.flying_football;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
@@ -50,6 +51,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	private String enteredUsername = null;
 	int collisionCooldown = 0;
 	int scoringBarrier = 0;
+	Sound jumpSound, goalSound, barrierHitSound, bounceSound, saveScoreSound;
 
 	// Define game states
 	final int STATE_NOT_STARTED = -1;
@@ -85,6 +87,11 @@ public class MyGdxGame extends ApplicationAdapter {
 		lowerBarriers = new Rectangle[numOfGoals];
 		upperBarriers = new Rectangle[numOfGoals];
 		football = new Circle();
+		jumpSound = Gdx.audio.newSound(Gdx.files.internal("jump.mp3"));
+		goalSound = Gdx.audio.newSound(Gdx.files.internal("goal.mp3"));
+		barrierHitSound = Gdx.audio.newSound(Gdx.files.internal("barrier.mp3"));
+		bounceSound = Gdx.audio.newSound(Gdx.files.internal("bounce.mp3"));
+		saveScoreSound = Gdx.audio.newSound(Gdx.files.internal("save.mp3"));
 
 		try {
 			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
@@ -142,7 +149,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		exitButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 50, 500, 100);
 		leaderboardButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 350, 500, 100);
 		endGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, Gdx.graphics.getHeight() / 2 + 50, 500, 150);
-		ContinueGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 300, Gdx.graphics.getHeight() / 2 + 50, 500, 100);
+		ContinueGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 400, Gdx.graphics.getHeight() / 2 + 50, 500, 100);
 		NewGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 + 400, Gdx.graphics.getHeight() / 2 + 50, 400, 100);
 
 		gameState = STATE_START_SCREEN; // Start in menu screen
@@ -437,6 +444,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			if ((supportX[scoringGoal] < centreX) && (supportHeight[scoringGoal] < ballY)) {
 				score++;
+				goalSound.play();
 				scoringGoal = (scoringGoal + 1) % numOfGoals;
 			}
 
@@ -594,6 +602,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (ballY <= 0) {
 				ballY = 0;
 				velocity = -10; // Bounce upward
+				bounceSound.play();
 			}
 
 			// Clamp ball so it doesn't go too high
@@ -604,6 +613,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (Gdx.input.isTouched()) {
 			thisFootball = 1;
+			jumpSound.play();
 		} else {
 			thisFootball = 0;
 		}
@@ -612,12 +622,14 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (Intersector.overlaps(football, lowerBarriers[scoringBarrier]) || Intersector.overlaps(football, upperBarriers[scoringBarrier])) {
 				if (gameState == STATE_RUNNING) {
 					collision = true;
+					barrierHitSound.play();
 					previousGameMode = STATE_RUNNING;
 					gameState = STATE_GAME_OVER;
 					return;
 				}
 				else if (gameState == STATE_RUNNING2) {
 					score--;
+					barrierHitSound.play();
 					scoringBarrier = (scoringBarrier + 1) % numOfGoals;
 				}
 			}
@@ -640,6 +652,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		} else if (filename.equals("endless_scores.txt")) {
 			endlessScoresFile.writeString(username + " " + score + "\n", true); // Append scores
 		}
+		saveScoreSound.play();
 	}
 
 	public ArrayList<String> getSavedUsernames(String filename) {
