@@ -44,9 +44,9 @@ public class MyGdxGame extends ApplicationAdapter {
 	float[] supportHeight = new float[numOfGoals];
 	float distanceBetweenGoals;
 	int score = 0, scoringGoal = 0;
-	boolean collision;
+	boolean collision, soundEnabled;
 	BitmapFont font, font1, font2, leaderboardFont;
-	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton, ContinueGameButton;
+	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton, ContinueGameButton, soundToggleButton;
 	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton;
 	private String enteredUsername = null;
 	int collisionCooldown = 0;
@@ -92,6 +92,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		barrierHitSound = Gdx.audio.newSound(Gdx.files.internal("barrier.mp3"));
 		bounceSound = Gdx.audio.newSound(Gdx.files.internal("bounce.mp3"));
 		saveScoreSound = Gdx.audio.newSound(Gdx.files.internal("save.mp3"));
+		soundEnabled = true;
 
 		try {
 			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
@@ -151,6 +152,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		endGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, Gdx.graphics.getHeight() / 2 + 50, 500, 150);
 		ContinueGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 400, Gdx.graphics.getHeight() / 2 + 50, 500, 100);
 		NewGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 + 400, Gdx.graphics.getHeight() / 2 + 50, 400, 100);
+		soundToggleButton = new Rectangle(30, Gdx.graphics.getHeight() - 100, 600, 80);
 
 		gameState = STATE_START_SCREEN; // Start in menu screen
 
@@ -245,6 +247,8 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
+			shapes.setColor(new Color(0.8f, 0.4f, 0.0f, 1f)); // Dark orange
+			shapes.rect(soundToggleButton.x, soundToggleButton.y, soundToggleButton.width, soundToggleButton.height);
 			shapes.setColor(Color.BLACK);
 			shapes.rect(playGameButton.x, playGameButton.y, playGameButton.width, playGameButton.height);
 			shapes.setColor(new Color(0.8f, 0.6f, 0.1f, 1f)); // Mustard yellow
@@ -257,6 +261,11 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.begin();
 
+			if (soundEnabled) {
+				font1.draw(batch, "Disable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+			} else {
+				font1.draw(batch, "Enable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+			}
 			font1.draw(batch, "Play Game", playGameButton.x + 50, playGameButton.y + 60);
 			font1.draw(batch, "Leaderboard", leaderboardButton.x + 50, leaderboardButton.y + 60);
 			font1.draw(batch, "Settings", settingsButton.x + 50, settingsButton.y + 60);
@@ -276,6 +285,8 @@ public class MyGdxGame extends ApplicationAdapter {
 					Gdx.app.exit(); // Close game
 				} else if (leaderboardButton.contains(touchX, touchY)) {
 					gameState = STATE_LEADERBOARD_SCREEN; // Switch to leaderboard screen
+				} else if (soundToggleButton.contains(Gdx.input.getX(), Gdx.input.getY())) {
+					soundEnabled = !soundEnabled;
 				}
 			}
 
@@ -288,6 +299,8 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
+			shapes.setColor(new Color(0.8f, 0.4f, 0.0f, 1f)); // Dark orange
+			shapes.rect(soundToggleButton.x, soundToggleButton.y, soundToggleButton.width, soundToggleButton.height);
 			shapes.setColor(Color.ORANGE); shapes.rect(endlessButton.x, endlessButton.y, endlessButton.width, endlessButton.height);
 			shapes.setColor(Color.GREEN); shapes.rect(classicButton.x, classicButton.y, classicButton.width, classicButton.height);
 			shapes.setColor(Color.BLUE); shapes.rect(storyButton.x, storyButton.y, storyButton.width, storyButton.height);
@@ -296,6 +309,11 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.begin();
 
+			if (soundEnabled) {
+				font1.draw(batch, "Disable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+			} else {
+				font1.draw(batch, "Enable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+			}
 			font1.draw(batch, "Endless", endlessButton.x + 50, endlessButton.y + 60);
 			font1.draw(batch, "Classic", classicButton.x + 50, classicButton.y + 60);
 			font1.draw(batch, "Story", storyButton.x + 50, storyButton.y + 60);
@@ -321,6 +339,8 @@ public class MyGdxGame extends ApplicationAdapter {
 				} else if (storyButton.contains(touchX, touchY) || arcadeButton.contains(touchX, touchY)) {
 					gameState = STATE_OTHER_SCREEN;
 					return;
+				} else if (soundToggleButton.contains(Gdx.input.getX(), Gdx.input.getY())) {
+					soundEnabled = !soundEnabled;
 				} else {
 					gameState = STATE_START_SCREEN; // 👈 Tap outside buttons returns to main menu
 					return;
@@ -397,11 +417,18 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
+			shapes.setColor(new Color(0.8f, 0.4f, 0.0f, 1f)); // Dark orange
+			shapes.rect(soundToggleButton.x, soundToggleButton.y, soundToggleButton.width, soundToggleButton.height);
 			shapes.setColor(Color.BLUE); // Set blue background
 			shapes.rect(mainMenuButton.x, mainMenuButton.y, mainMenuButton.width, mainMenuButton.height); // Draw button shape
 			shapes.end();
 
 			batch.begin();
+			if (soundEnabled) {
+				font1.draw(batch, "Disable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+			} else {
+				font1.draw(batch, "Enable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+			}
 			font1.draw(batch, "Main Menu", mainMenuButton.x + 80, mainMenuButton.y + 100); // Draw menu text
 			batch.end();
 
@@ -425,6 +452,8 @@ public class MyGdxGame extends ApplicationAdapter {
 						previousGameMode = STATE_RUNNING2;
 						gameState = STATE_GAME_OVER;
 						return;
+					} else if (soundToggleButton.contains(Gdx.input.getX(), Gdx.input.getY())) {
+						soundEnabled = !soundEnabled;
 					}
 				}
 			}
@@ -433,6 +462,8 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (Gdx.input.justTouched()) {
 				if (!mainMenuButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
 					gameState = STATE_RUNNING; // Resume game
+				} else if (soundToggleButton.contains(Gdx.input.getX(), Gdx.input.getY())) {
+					soundEnabled = !soundEnabled;
 				} else {
 					gameState = STATE_START_SCREEN; // Return to the main menu
 				}
@@ -444,7 +475,9 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			if ((supportX[scoringGoal] < centreX) && (supportHeight[scoringGoal] < ballY)) {
 				score++;
-				goalSound.play();
+				if (soundEnabled) {
+					goalSound.play();
+				}
 				scoringGoal = (scoringGoal + 1) % numOfGoals;
 			}
 
@@ -474,6 +507,8 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			ShapeRenderer shapeRenderer = new ShapeRenderer();
 			shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+			shapeRenderer.setColor(new Color(0.8f, 0.4f, 0.0f, 1f)); // Dark orange
+			shapeRenderer.rect(soundToggleButton.x, soundToggleButton.y, soundToggleButton.width, soundToggleButton.height);
 			shapeRenderer.setColor(Color.BLUE); // Set blue background
 			shapeRenderer.rect(pauseButton.x, pauseButton.y, pauseButton.width, pauseButton.height); // Draw button shape
 			shapeRenderer.end();
@@ -481,6 +516,11 @@ public class MyGdxGame extends ApplicationAdapter {
 			// Draw pause symbol
 			batch.begin();
 			font1.draw(batch, "⏸️", pauseButton.x + 20, pauseButton.y + 80);
+			if (soundEnabled) {
+				font1.draw(batch, "Disable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+			} else {
+				font1.draw(batch, "Enable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+			}
 
 			footballOval.set(centreX, ballY, 300, 200);
 			football.set(footballOval.x, footballOval.y, 100);
@@ -602,7 +642,9 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (ballY <= 0) {
 				ballY = 0;
 				velocity = -10; // Bounce upward
-				bounceSound.play();
+				if (soundEnabled) {
+					bounceSound.play();
+				}
 			}
 
 			// Clamp ball so it doesn't go too high
@@ -613,7 +655,9 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (Gdx.input.isTouched()) {
 			thisFootball = 1;
-			jumpSound.play();
+			if (soundEnabled) {
+				jumpSound.play();
+			}
 		} else {
 			thisFootball = 0;
 		}
@@ -622,14 +666,18 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (Intersector.overlaps(football, lowerBarriers[scoringBarrier]) || Intersector.overlaps(football, upperBarriers[scoringBarrier])) {
 				if (gameState == STATE_RUNNING) {
 					collision = true;
-					barrierHitSound.play();
+					if (soundEnabled) {
+						barrierHitSound.play();
+					}
 					previousGameMode = STATE_RUNNING;
 					gameState = STATE_GAME_OVER;
 					return;
 				}
 				else if (gameState == STATE_RUNNING2) {
 					score--;
-					barrierHitSound.play();
+					if (soundEnabled) {
+						barrierHitSound.play();
+					}
 					scoringBarrier = (scoringBarrier + 1) % numOfGoals;
 				}
 			}
@@ -652,7 +700,9 @@ public class MyGdxGame extends ApplicationAdapter {
 		} else if (filename.equals("endless_scores.txt")) {
 			endlessScoresFile.writeString(username + " " + score + "\n", true); // Append scores
 		}
-		saveScoreSound.play();
+		if (soundEnabled) {
+			saveScoreSound.play();
+		}
 	}
 
 	public ArrayList<String> getSavedUsernames(String filename) {
