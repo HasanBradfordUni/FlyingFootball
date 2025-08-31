@@ -13,6 +13,7 @@ then using my own ideas, knowledge of Java, and AI help to continue the developm
 - **Game Over Logic**: A streamlined defeat screen brings closure with leaderboard integration.
 - **Pause & Menu Options**: Convenient in-game controls allow players to pause and navigate seamlessly.
 - **Start Menu with Navigation**: Launch the game, adjust settings, explore modes, or exit with ease.
+- **Realistic Sound Effects:** Sound effects for key moments in the game with a button to disable them if you want  
 
 ## 📊 Player Retention Systems
 - **Leaderboard Support**: Tracks high scores separately across different game modes.
@@ -200,14 +201,43 @@ Text styling and visuals need a bit of work though.
 Also game mode coming soon messages still flash and now sends the player back to the main menu straight away. 
 Leaderboard scores work but text displayed is too big and unorganised.  
 
-### Version 1.71
+### Version 1.71 (June 2025)  
+Added new smaller font size for leaderboard names to somewhat fix leaderboard visuals. 
+Also worked on game over screen where player can save their score, 
+they can now choose an existing name to save their new score with as well. 
+However, at the moment, instead of going to the game over screen, 
+an illegal state exception happens (to do with sprite batches) causing the game to crash and close without being able to save the score.  
 
-### Version 1.72
+### Version 1.72 (June 2025)  
+Started adding new font type to make the text look cleaner, 
+however it doesn't work yet and so game crashes before even starting.  
 
-### Version 1.73
+### Version 1.73 (June 2025)  
+Added error checking for font loading so that the previous error wouldn't occur anymore. 
+The new font now loads, however it's really small, need to change scale of it. 
+Also worked on the game over screen again, however same error still occurs here, need to fix that next.  
 
-### Version 1.74
+### Version 1.74 (June 2025)  
+Font sizes of the new fonts were adjusted to make them bigger, 
+however alignment now off on some of the text in the game such as Main Menu title text. 
+Game over screen crash issue still happens, still need to fix that. 
+Added Endless mode in this version as well, however some issues, 
+main ones being that the player can't move the ball yet and also the score minuses too much/fast.  
 
-### Version 1.75
+### Version 1.75 + 1.76 (July 2025)  
+Endless mode was added properly now with some bugs being sorted out then. 
+Almost sorted out scoring system for endless mode (doesn't continually minus anymore). 
+An "End Game" button has been added that allows the player to save their score, same as at the end of a classic game. 
+Separate leaderboards have been created for Endless and Classic mode (different text files used for each), 
+however they are still displayed as combined. Changed colour of leaderboard button on Main Menu to increase visibility and contrast. 
+Final changes before release coming in Version 1.77.  
 
-### Version 1.76
+### Version 1.77 (July/August 2025)  
+Can now continue endless games from where left off at any time. 
+An additional screen appears if there is a saved endless game (saves automatically when game paused) 
+that has a green button on the left to Continue and a New Game button on the right. 
+Changes to minus score system in Endless mode to make sure that points only get subtracted by 1 each time, 
+full separation of Endless and Classic scoreboards, flashing of buttons on other screen fixed, fixed game crashing issues. 
+Also can now go back to main menu from game select screen (tap anywhere other than the buttons). 
+Finally added Realistic Audio sounds for moving the ball up, when it goes through goals, 
+when it hits barriers, when it hits the bottom and bounces up and also when saving the score after the game is over.  
