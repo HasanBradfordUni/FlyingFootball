@@ -708,16 +708,17 @@ public class MyGdxGame extends ApplicationAdapter {
 	public ArrayList<String> getSavedUsernames(String filename) {
 		String data = "";
 		if (filename.equals("scores.txt")) {
-			data = scoresFile.readString(); // Append scores
+			data = scoresFile.readString();
 		} else if (filename.equals("endless_scores.txt")) {
-			data = endlessScoresFile.readString(); // Append scores
+			data = endlessScoresFile.readString();
 		}
 
 		ArrayList<String> usernames = new ArrayList<>();
 		for (String line : data.split("\n")) {
+			line = line.trim();
 			if (!line.isEmpty()) {
 				String[] parts = line.split(" ");
-				if (!usernames.contains(parts[0])) { // Avoid duplicates
+				if (parts.length >= 2 && !usernames.contains(parts[0])) {
 					usernames.add(parts[0]);
 				}
 			}
@@ -727,24 +728,39 @@ public class MyGdxGame extends ApplicationAdapter {
 
 	public ArrayList<String> getTopScores(String filename) {
 		FileHandle scoresFile = Gdx.files.local(filename);
-		String data = scoresFile.readString();
-
 		ArrayList<String> scores = new ArrayList<>();
-		for (String line : data.split("\n")) {
-			if (!line.isEmpty()) {
-				scores.add(line);
-			}
-		}
 
-		// Sort scores in descending order
-		Collections.sort(scores, new Comparator<String>() {
-			@Override
-			public int compare(String a, String b) {
-				int scoreA = Integer.parseInt(a.split(" ")[1]);
-				int scoreB = Integer.parseInt(b.split(" ")[1]);
-				return Integer.compare(scoreB, scoreA); // Sort descending
+		if (scoresFile.exists()) {
+			String[] lines = scoresFile.readString().split("\n");
+
+			for (String line : lines) {
+				line = line.trim();
+				if (!line.isEmpty()) {
+					String[] parts = line.split(" ");
+					if (parts.length >= 2) {
+						try {
+							Integer.parseInt(parts[1]); // Validate score
+							scores.add(line); // Only add valid lines
+						} catch (NumberFormatException e) {
+							// Skip malformed lines
+						}
+					}
+				}
 			}
-		});
+
+			Collections.sort(scores, new Comparator<String>() {
+				@Override
+				public int compare(String a, String b) {
+					try {
+						int scoreA = Integer.parseInt(a.split(" ")[1]);
+						int scoreB = Integer.parseInt(b.split(" ")[1]);
+						return Integer.compare(scoreB, scoreA); // Descending
+					} catch (Exception e) {
+						return 0; // Treat malformed lines as equal
+					}
+				}
+			});
+		}
 
 		return scores;
 	}

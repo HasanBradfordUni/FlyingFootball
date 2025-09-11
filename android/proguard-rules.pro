@@ -23,17 +23,17 @@
 
 -dontwarn com.badlogic.gdx.backends.android.AndroidFragmentApplication
 
-# Required if using Gdx-Controllers extension
--keep class com.badlogic.gdx.controllers.android.AndroidControllers
--keep class com.badlogic.gdx.graphics.g2d.freetype.** { *; }
+# LibGDX core
+-keep class com.badlogic.gdx.** { *; }
+-keepclassmembers class com.badlogic.gdx.** { *; }
 
-# Required if using Box2D extension
--keepclassmembers class com.badlogic.gdx.physics.box2d.World {
-   boolean contactFilter(long, long);
-   void    beginContact(long);
-   void    endContact(long);
-   void    preSolve(long, long);
-   void    postSolve(long, long);
-   boolean reportFixture(long);
-   float   reportRayFixture(long, float, float, float, float, float);
-}
+# Your game classes
+-keep class com.has_akh.flying_football.** { *; }
+
+# Prevent stripping of sound, font, and asset classes
+-keep class com.badlogic.gdx.audio.** { *; }
+-keep class com.badlogic.gdx.graphics.g2d.** { *; }
+-keep class com.badlogic.gdx.files.** { *; }
+
+# Required if using Gdx-Controllers extension
+-keep class com.badlogic.gdx.graphics.g2d.freetype.** { *; }

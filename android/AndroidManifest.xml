@@ -6,6 +6,7 @@
 
     <application
         android:allowBackup="true"
+        android:allowCrossUidActivitySwitchFromBelow="false"
         android:fullBackupContent="true"
         android:icon="@drawable/logo"
         android:isGame="true"

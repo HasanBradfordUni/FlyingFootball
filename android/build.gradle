@@ -1,7 +1,7 @@
 android {
     namespace "com.has_akh.flying_football"
-    buildToolsVersion "34.0.0"
-    compileSdkVersion 34
+    buildToolsVersion "35.0.0"
+    compileSdkVersion 35
 
     sourceSets {
         main {
@@ -22,9 +22,9 @@ android {
     defaultConfig {
         applicationId "com.has_akh.flying_football"
         minSdkVersion 21
-        targetSdkVersion 34
-        versionCode 33
-        versionName "1.77"
+        targetSdkVersion 35
+        versionCode 34
+        versionName "1.78"
     }
 
     buildTypes {
@@ -35,7 +35,7 @@ android {
     }
 
     buildFeatures {
-        renderScript true
+        renderScript false
         aidl true
     }
 }
