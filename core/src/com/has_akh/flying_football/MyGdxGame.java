@@ -236,7 +236,7 @@ public class MyGdxGame extends ApplicationAdapter {
 				gameState = STATE_PAUSED;
 				return;
 			} else {
-				velocity = -10;
+				velocity = -25;
 			}
 		}
 
@@ -331,11 +331,15 @@ public class MyGdxGame extends ApplicationAdapter {
 						return;
 					} else {
 						gameState = STATE_RUNNING2;
+						startGame(); // ✅ Reset game state
 						velocity = 0;
 					}
 				} else if (classicButton.contains(touchX, touchY)) {
-					gameState = STATE_RUNNING; // Start classic game mode
-					velocity = 0;  // Ensure velocity starts from 0
+					previousGameMode = STATE_RUNNING; // ✅ Explicitly set mode
+					Gdx.files.local("endless_state.txt").delete(); // ✅ Clear saved Endless state
+					gameState = STATE_RUNNING;
+					startGame(); // ✅ Reset game state
+					velocity = 0;
 				} else if (storyButton.contains(touchX, touchY) || arcadeButton.contains(touchX, touchY)) {
 					gameState = STATE_OTHER_SCREEN;
 					return;
@@ -398,6 +402,7 @@ public class MyGdxGame extends ApplicationAdapter {
 					Gdx.files.local("endless_state.txt").delete();
 					gameState = STATE_RUNNING2;
 					startGame();
+					velocity = 0;
 				} else if (ContinueGameButton.contains(touchX, touchY)) {
 					loadEndlessState();
 					gameState = STATE_RUNNING2;
@@ -663,22 +668,16 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		for (int i = 0; i < numOfGoals; i++) {
-			if (Intersector.overlaps(football, lowerBarriers[scoringBarrier]) || Intersector.overlaps(football, upperBarriers[scoringBarrier])) {
+			if (Intersector.overlaps(football, lowerBarriers[i]) || Intersector.overlaps(football, upperBarriers[i])) {
 				if (gameState == STATE_RUNNING) {
 					collision = true;
-					if (soundEnabled) {
-						barrierHitSound.play();
-					}
+					if (soundEnabled) barrierHitSound.play();
 					previousGameMode = STATE_RUNNING;
 					gameState = STATE_GAME_OVER;
 					return;
-				}
-				else if (gameState == STATE_RUNNING2) {
+				} else if (gameState == STATE_RUNNING2) {
 					score--;
-					if (soundEnabled) {
-						barrierHitSound.play();
-					}
-					scoringBarrier = (scoringBarrier + 1) % numOfGoals;
+					if (soundEnabled) barrierHitSound.play();
 				}
 			}
 		}
