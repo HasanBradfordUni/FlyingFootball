@@ -6,6 +6,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -44,7 +45,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	float[] supportHeight = new float[numOfGoals];
 	float distanceBetweenGoals;
 	int score = 0, scoringGoal = 0;
-	boolean collision, soundEnabled;
+	boolean collision, soundEnabled, showOutlines;
 	BitmapFont font, font1, font2, leaderboardFont;
 	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton, ContinueGameButton, soundToggleButton;
 	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton;
@@ -93,6 +94,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		bounceSound = Gdx.audio.newSound(Gdx.files.internal("bounce.mp3"));
 		saveScoreSound = Gdx.audio.newSound(Gdx.files.internal("save.mp3"));
 		soundEnabled = true;
+		showOutlines = false;
 
 		try {
 			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
@@ -225,9 +227,9 @@ public class MyGdxGame extends ApplicationAdapter {
 		batch.end();
 
 		if (score < 1) {
-			goalVelocity = 5;
+			goalVelocity = 3;
 		} else {
-			goalVelocity = 2 * Math.round(3 + (float) Math.sin(score * 0.2) * 2);
+			goalVelocity = (int) (2 + (score * 1.3));
 		}
 
 		if ((gameState == STATE_RUNNING || gameState == STATE_RUNNING2) && Gdx.input.justTouched()) {
@@ -523,18 +525,25 @@ public class MyGdxGame extends ApplicationAdapter {
 				batch.begin();
 				batch.draw(goalSupport, supportX[i], 0, 200, supportHeight[i]);
 				batch.draw(goal, supportX[i], supportHeight[i], 300, 300);
-				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i]);
-				upperBarriers[i].set(supportX[i], supportHeight[i] + 300, (float) goal.getWidth() /2, height - supportHeight[i] - 300);
+				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i]-100);
+				upperBarriers[i].set(supportX[i], supportHeight[i] + 400, (float) goal.getWidth() /2, height - supportHeight[i] - 200);
 				batch.end();
 
-				shapes.begin(ShapeRenderer.ShapeType.Filled);
-				shapes.setColor(new Color(1f, 0f, 0f, 0.3f)); // Red with 30% opacity
-				shapes.rect(upperBarriers[i].x, upperBarriers[i].y, upperBarriers[i].width, upperBarriers[i].height);
+				Gdx.gl.glEnable(GL20.GL_BLEND);
+				Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-				shapes.setColor(Color.BLACK);
-				shapes.set(ShapeRenderer.ShapeType.Line);
-				shapes.rect(lowerBarriers[i].x, lowerBarriers[i].y, lowerBarriers[i].width, lowerBarriers[i].height);
+				shapes.begin(ShapeRenderer.ShapeType.Filled);
+				shapes.setColor(new Color(1f, 0f, 0f, 0.4f)); // Red with 40% opacity
+				shapes.rect(upperBarriers[i].x+10, upperBarriers[i].y, upperBarriers[i].width-20, upperBarriers[i].height);
 				shapes.end();
+
+				if (showOutlines) {
+					shapes.begin(ShapeRenderer.ShapeType.Line);
+					shapes.setColor(Color.BLACK);
+					shapes.rect(lowerBarriers[i].x, lowerBarriers[i].y, lowerBarriers[i].width, lowerBarriers[i].height);
+					shapes.rect(upperBarriers[i].x, upperBarriers[i].y, upperBarriers[i].width, upperBarriers[i].height);
+					shapes.end();
+				}
 			}
 
 
