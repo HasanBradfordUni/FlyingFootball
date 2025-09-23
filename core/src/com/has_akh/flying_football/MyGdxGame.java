@@ -231,12 +231,18 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		if ((gameState == STATE_RUNNING || gameState == STATE_RUNNING2) && Gdx.input.justTouched()) {
-			if (pauseButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
+			float touchX = Gdx.input.getX();
+			float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
+
+			if (soundToggleButton.contains(touchX, touchY)) {
+				soundEnabled = !soundEnabled;
+				return;
+			} else if (pauseButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
 				previousGameMode = gameState;
 				gameState = STATE_PAUSED;
 				return;
 			} else {
-				velocity = -25;
+				velocity = -20;
 			}
 		}
 
@@ -277,7 +283,10 @@ public class MyGdxGame extends ApplicationAdapter {
 				float touchX = Gdx.input.getX();
 				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
 
-				if (playGameButton.contains(touchX, touchY)) {
+				if (soundToggleButton.contains(touchX, touchY)) {
+					soundEnabled = !soundEnabled;
+					return;
+				} else if (playGameButton.contains(touchX, touchY)) {
 					gameState = STATE_NOT_STARTED;
 				} else if (settingsButton.contains(touchX, touchY)) {
 					gameState = STATE_SETTINGS_SCREEN;
@@ -285,8 +294,6 @@ public class MyGdxGame extends ApplicationAdapter {
 					Gdx.app.exit(); // Close game
 				} else if (leaderboardButton.contains(touchX, touchY)) {
 					gameState = STATE_LEADERBOARD_SCREEN; // Switch to leaderboard screen
-				} else if (soundToggleButton.contains(Gdx.input.getX(), Gdx.input.getY())) {
-					soundEnabled = !soundEnabled;
 				}
 			}
 
@@ -324,7 +331,10 @@ public class MyGdxGame extends ApplicationAdapter {
 				float touchX = Gdx.input.getX();
 				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
 
-				if (endlessButton.contains(touchX, touchY)) {
+				if (soundToggleButton.contains(touchX, touchY)) {
+					soundEnabled = !soundEnabled;
+					return;
+				} else if (endlessButton.contains(touchX, touchY)) {
 					FileHandle file = Gdx.files.local("endless_state.txt");
 					if (file.exists()) {
 						gameState = STATE_CONTINUE_SCREEN; // Show prompt
@@ -343,8 +353,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				} else if (storyButton.contains(touchX, touchY) || arcadeButton.contains(touchX, touchY)) {
 					gameState = STATE_OTHER_SCREEN;
 					return;
-				} else if (soundToggleButton.contains(Gdx.input.getX(), Gdx.input.getY())) {
-					soundEnabled = !soundEnabled;
 				} else {
 					gameState = STATE_START_SCREEN; // 👈 Tap outside buttons returns to main menu
 					return;
@@ -359,7 +367,14 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.end();
 
 			if (Gdx.input.justTouched()) {
-				gameState = STATE_START_SCREEN; // Return to the main menu
+				float touchX = Gdx.input.getX();
+				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
+				if (soundToggleButton.contains(touchX, touchY)) {
+					soundEnabled = !soundEnabled;
+					return;
+				} else {
+					gameState = STATE_START_SCREEN; // Return to the main menu
+				}
 			}
 			return;
 		}
@@ -373,7 +388,10 @@ public class MyGdxGame extends ApplicationAdapter {
 				float touchX = Gdx.input.getX();
 				float touchY = height - Gdx.input.getY();
 
-				if (!NewGameButton.contains(touchX, touchY) && !ContinueGameButton.contains(touchX, touchY)) {
+				if (soundToggleButton.contains(touchX, touchY)) {
+					soundEnabled = !soundEnabled;
+					return;
+				} else if (!NewGameButton.contains(touchX, touchY) && !ContinueGameButton.contains(touchX, touchY)) {
 					gameState = STATE_START_SCREEN; // Only return to menu if they tap outside
 				}
 			}
@@ -398,7 +416,10 @@ public class MyGdxGame extends ApplicationAdapter {
 				float touchX = Gdx.input.getX();
 				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
 
-				if (NewGameButton.contains(touchX, touchY)) {
+				if (soundToggleButton.contains(touchX, touchY)) {
+					soundEnabled = !soundEnabled;
+					return;
+				} else if (NewGameButton.contains(touchX, touchY)) {
 					Gdx.files.local("endless_state.txt").delete();
 					gameState = STATE_RUNNING2;
 					startGame();
@@ -452,23 +473,27 @@ public class MyGdxGame extends ApplicationAdapter {
 					float touchX = Gdx.input.getX();
 					float touchY = height - Gdx.input.getY();
 
-					if (endGameButton.contains(touchX, touchY)) {
+					if (soundToggleButton.contains(touchX, touchY)) {
+						soundEnabled = !soundEnabled;
+						return;
+					} else if (endGameButton.contains(touchX, touchY)) {
 						Gdx.files.local("endless_state.txt").delete();
 						previousGameMode = STATE_RUNNING2;
 						gameState = STATE_GAME_OVER;
 						return;
-					} else if (soundToggleButton.contains(Gdx.input.getX(), Gdx.input.getY())) {
-						soundEnabled = !soundEnabled;
 					}
 				}
 			}
 
 			// Resume when clicking **anywhere except main menu**
 			if (Gdx.input.justTouched()) {
-				if (!mainMenuButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
-					gameState = STATE_RUNNING; // Resume game
-				} else if (soundToggleButton.contains(Gdx.input.getX(), Gdx.input.getY())) {
+				float touchX = Gdx.input.getX();
+				float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
+				if (soundToggleButton.contains(touchX, touchY)) {
 					soundEnabled = !soundEnabled;
+					return;
+				} if (!mainMenuButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
+					gameState = STATE_RUNNING; // Resume game
 				} else {
 					gameState = STATE_START_SCREEN; // Return to the main menu
 				}
@@ -486,8 +511,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				scoringGoal = (scoringGoal + 1) % numOfGoals;
 			}
 
-			batch.begin();
-
 			for (int i = 0; i < numOfGoals; i++) {
 
 				if (supportX[i] < -goal.getWidth()) {
@@ -497,13 +520,22 @@ public class MyGdxGame extends ApplicationAdapter {
 					supportX[i] -= goalVelocity;
 				}
 
+				batch.begin();
 				batch.draw(goalSupport, supportX[i], 0, 200, supportHeight[i]);
 				batch.draw(goal, supportX[i], supportHeight[i], 300, 300);
-				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i] - 200);
-				upperBarriers[i].set(supportX[i], supportHeight[i] + 500, (float) goal.getWidth() /2, height - supportHeight[i] - 400);
-			}
+				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i]);
+				upperBarriers[i].set(supportX[i], supportHeight[i] + 300, (float) goal.getWidth() /2, height - supportHeight[i] - 300);
+				batch.end();
 
-			batch.end();
+				shapes.begin(ShapeRenderer.ShapeType.Filled);
+				shapes.setColor(new Color(1f, 0f, 0f, 0.3f)); // Red with 30% opacity
+				shapes.rect(upperBarriers[i].x, upperBarriers[i].y, upperBarriers[i].width, upperBarriers[i].height);
+
+				shapes.setColor(Color.BLACK);
+				shapes.set(ShapeRenderer.ShapeType.Line);
+				shapes.rect(lowerBarriers[i].x, lowerBarriers[i].y, lowerBarriers[i].width, lowerBarriers[i].height);
+				shapes.end();
+			}
 
 
 			batch.begin();
