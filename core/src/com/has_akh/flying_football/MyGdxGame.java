@@ -65,13 +65,22 @@ public class MyGdxGame extends ApplicationAdapter {
 	final int STATE_LEADERBOARD_SCREEN = 6;
 	final int STATE_RUNNING2 = 7;
 	final int STATE_CONTINUE_SCREEN = 8;
+	final int STATE_STORY = 9;
+	final int STATE_STORY_LEVEL_COMPLETE = 10;
+	final int STATE_LEVEL_SELECT = 11;
 	private int previousGameMode;
 	private String filename;
 	private FileHandle scoresFile, endlessScoresFile;
+	private boolean[] barrierPenalized;
+	ArrayList<StoryLevel> storyLevels;
+	private int currentPage;
+	private StoryLevel currentLevel;
+	StoryModeCategories[] categories = StoryModeCategories.values(); //Converting the enum to an array for level creation
 
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
+		storyLevels = new ArrayList<>();
 		background = new Texture("Background.jpg");
 		gameover = new Texture("Gameover.png");
 		pausedGraphic = new Texture("Paused.png");
@@ -95,6 +104,12 @@ public class MyGdxGame extends ApplicationAdapter {
 		saveScoreSound = Gdx.audio.newSound(Gdx.files.internal("save.mp3"));
 		soundEnabled = true;
 		showOutlines = false;
+
+		float[] level1BarrierHeights = new float[]{200, 300, 250, 400, 350, 300};
+		float level1Speed = 3;
+		int level1Lives = 3;
+		StoryLevel level1 = new StoryLevel(level1BarrierHeights, level1Speed, level1Lives, 1, StoryModeCategories.NOOB, true);
+		storyLevels.add(level1);
 
 		try {
 			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
@@ -161,6 +176,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		// Define button areas
 		pauseButton = new Rectangle(Gdx.graphics.getWidth() - 300, Gdx.graphics.getHeight() - 200, 150, 100);
 		mainMenuButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, Gdx.graphics.getHeight() / 2 + 250, 500, 150);
+		createLevels();
 	}
 
 	public void startGame() {
@@ -169,11 +185,41 @@ public class MyGdxGame extends ApplicationAdapter {
 		this.scoringBarrier = 0;
 		ballY = (Gdx.graphics.getHeight()/2) - 100;
 
+		barrierPenalized = new boolean[numOfGoals]; // track per barrier penalty state
+
 		for (int i = 0; i < numOfGoals; i++) {
 			supportX[i] = (Gdx.graphics.getWidth()/2) - 100 + Gdx.graphics.getWidth()/2 + i * distanceBetweenGoals;
 			supportHeight[i] = randomGenerator.nextInt(600);
 			lowerBarriers[i] = new Rectangle();
 			upperBarriers[i] = new Rectangle();
+			barrierPenalized[i] = false; // reset flags
+		}
+	}
+
+	public void createLevels() {
+		int levelsPerCategory = 20;
+		int totalLevelCount = 0;
+
+		for (StoryModeCategories category : categories) {
+			for (int i = 1; i <= levelsPerCategory; i++) {
+				int levelNumber = totalLevelCount + 1;
+
+				// Example barrier heights: vary by category and level
+				float[] barrierHeights = new float[numOfGoals];
+				for (int j = 0; j < numOfGoals; j++) {
+					barrierHeights[j] = 200 + (category.ordinal() * 50) + (i * 5); // Scales with category and level
+				}
+
+				float speed = 3 + category.ordinal(); // Increase speed with difficulty
+				int lives = 3; // You can vary this too
+
+				boolean unlocked = (i == 1); // Only first level in each category is unlocked
+
+				StoryLevel level = new StoryLevel(barrierHeights, speed, lives, levelNumber, category, unlocked);
+				storyLevels.add(level);
+
+				totalLevelCount++;
+			}
 		}
 	}
 
@@ -213,6 +259,19 @@ public class MyGdxGame extends ApplicationAdapter {
 		velocity = 0;
 		ballY = (Gdx.graphics.getHeight() / 2) - 100;
 		enteredUsername = null; // Reset for next input
+	}
+
+	public void startStoryLevel(StoryLevel level) {
+		score = 0;
+		ballY = (Gdx.graphics.getHeight()/2) - 100;
+
+		float[] levelBarrierHeights = level.getBarrierHeights();
+		for (int i = 0; i < numOfGoals; i++) {
+			supportX[i] = (Gdx.graphics.getWidth()/2) - 100 + Gdx.graphics.getWidth()/2 + i * distanceBetweenGoals;
+			supportHeight[i] = levelBarrierHeights[i];
+		}
+
+		goalVelocity = (int) level.getSpeed();
 	}
 
 	@Override
@@ -352,7 +411,9 @@ public class MyGdxGame extends ApplicationAdapter {
 					gameState = STATE_RUNNING;
 					startGame(); // ✅ Reset game state
 					velocity = 0;
-				} else if (storyButton.contains(touchX, touchY) || arcadeButton.contains(touchX, touchY)) {
+				} else if (storyButton.contains(touchX, touchY)) {
+					gameState = STATE_LEVEL_SELECT;
+				} else if (arcadeButton.contains(touchX, touchY)) {
 					gameState = STATE_OTHER_SCREEN;
 					return;
 				} else {
@@ -398,6 +459,70 @@ public class MyGdxGame extends ApplicationAdapter {
 				}
 			}
 			return;
+		}
+
+		if (gameState == STATE_LEVEL_SELECT) {
+			batch.begin();
+			font2.draw(batch, "Level Select", width / 2 - 300, height - 100);
+			batch.end();
+
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+			int levelsPerPage = 18;
+			int startIndex = currentPage * levelsPerPage;
+
+			for (int i = 0; i < levelsPerPage; i++) {
+				if (startIndex + i >= storyLevels.size()) break;
+
+				StoryLevel level = storyLevels.get(startIndex + i);
+				float x = 100 + (i % 6) * 200;
+				float y = height - 200 - (i / 6) * 150;
+
+				if (level.isUnlocked()) {
+					shapes.setColor(Color.CYAN);
+				} else {
+					shapes.setColor(Color.DARK_GRAY);
+				}
+
+				shapes.rect(x, y, 150, 100);
+			}
+
+			shapes.end();
+
+			batch.begin();
+			for (int i = 0; i < levelsPerPage; i++) {
+				if (startIndex + i >= storyLevels.size()) break;
+
+				StoryLevel level = storyLevels.get(startIndex + i);
+				float x = 100 + (i % 6) * 200;
+				float y = height - 200 - (i / 6) * 150;
+
+				font1.draw(batch, String.valueOf(level.getLevelNumber()), x + 50, y + 60);
+			}
+			batch.end();
+
+			// Handle input
+			if (Gdx.input.justTouched()) {
+				float tx = Gdx.input.getX();
+				float ty = height - Gdx.input.getY();
+
+				for (int i = 0; i < levelsPerPage; i++) {
+					if (startIndex + i >= storyLevels.size()) break;
+
+					float x = 100 + (i % 6) * 200;
+					float y = height - 200 - (i / 6) * 150;
+
+					Rectangle button = new Rectangle(x, y, 150, 100);
+					if (button.contains(tx, ty)) {
+						StoryLevel selected = storyLevels.get(startIndex + i);
+						if (selected.isUnlocked()) {
+							currentLevel = selected;
+							gameState = STATE_STORY;
+							startStoryLevel(currentLevel);
+						}
+					}
+				}
+			}
 		}
 
 		if (gameState == STATE_CONTINUE_SCREEN) {
@@ -518,6 +643,7 @@ public class MyGdxGame extends ApplicationAdapter {
 				if (supportX[i] < -goal.getWidth()) {
 					supportX[i] += numOfGoals * distanceBetweenGoals;
 					supportHeight[i] = randomGenerator.nextInt(600);
+					barrierPenalized[i] = false; // reset on recycle
 				} else {
 					supportX[i] -= goalVelocity;
 				}
@@ -525,8 +651,8 @@ public class MyGdxGame extends ApplicationAdapter {
 				batch.begin();
 				batch.draw(goalSupport, supportX[i], 0, 200, supportHeight[i]);
 				batch.draw(goal, supportX[i], supportHeight[i], 300, 300);
-				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() /2, supportHeight[i]-100);
-				upperBarriers[i].set(supportX[i], supportHeight[i] + 400, (float) goal.getWidth() /2, height - supportHeight[i] - 200);
+				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() / 2, supportHeight[i]-150);
+				upperBarriers[i].set(supportX[i], supportHeight[i] + 450, (float) goal.getWidth() / 2, height - supportHeight[i] - 150);
 				batch.end();
 
 				Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -534,7 +660,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 				shapes.begin(ShapeRenderer.ShapeType.Filled);
 				shapes.setColor(new Color(1f, 0f, 0f, 0.4f)); // Red with 40% opacity
-				shapes.rect(upperBarriers[i].x+10, upperBarriers[i].y, upperBarriers[i].width-20, upperBarriers[i].height);
+				shapes.rect(upperBarriers[i].x+10, upperBarriers[i].y-100, upperBarriers[i].width-20, upperBarriers[i].height+100);
 				shapes.end();
 
 				if (showOutlines) {
@@ -709,16 +835,28 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		for (int i = 0; i < numOfGoals; i++) {
-			if (Intersector.overlaps(football, lowerBarriers[i]) || Intersector.overlaps(football, upperBarriers[i])) {
-				if (gameState == STATE_RUNNING) {
+			boolean overlapping = Intersector.overlaps(football, lowerBarriers[i]) ||
+					Intersector.overlaps(football, upperBarriers[i]);
+
+			if (gameState == STATE_RUNNING) {
+				if (overlapping) {
 					collision = true;
 					if (soundEnabled) barrierHitSound.play();
 					previousGameMode = STATE_RUNNING;
 					gameState = STATE_GAME_OVER;
 					return;
-				} else if (gameState == STATE_RUNNING2) {
-					score--;
-					if (soundEnabled) barrierHitSound.play();
+				}
+			} else if (gameState == STATE_RUNNING2) {
+				if (overlapping) {
+					// only subtract once per overlap instance
+					if (!barrierPenalized[i]) {
+						score--;
+						if (soundEnabled) barrierHitSound.play();
+						barrierPenalized[i] = true;
+					}
+				} else {
+					// clear when no longer overlapping this barrier
+					barrierPenalized[i] = false;
 				}
 			}
 		}
