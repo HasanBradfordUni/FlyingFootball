@@ -75,10 +75,15 @@ public class MyGdxGame extends ApplicationAdapter {
 	ArrayList<StoryLevel> storyLevels;
 	private int currentPage;
 	private StoryLevel currentLevel;
+	private int currentCategoryIndex = 0;
 	StoryModeCategories[] categories = StoryModeCategories.values(); //Converting the enum to an array for level creation
+	Rectangle leftArrow;
+	Rectangle rightArrow;
 
 	@Override
 	public void create () {
+		leftArrow = new Rectangle(50, Gdx.graphics.getHeight() - 150, 100, 100);
+		rightArrow = new Rectangle(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 150, 100, 100);
 		batch = new SpriteBatch();
 		storyLevels = new ArrayList<>();
 		background = new Texture("Background.jpg");
@@ -104,12 +109,6 @@ public class MyGdxGame extends ApplicationAdapter {
 		saveScoreSound = Gdx.audio.newSound(Gdx.files.internal("save.mp3"));
 		soundEnabled = true;
 		showOutlines = false;
-
-		float[] level1BarrierHeights = new float[]{200, 300, 250, 400, 350, 300};
-		float level1Speed = 3;
-		int level1Lives = 3;
-		StoryLevel level1 = new StoryLevel(level1BarrierHeights, level1Speed, level1Lives, 1, StoryModeCategories.NOOB, true);
-		storyLevels.add(level1);
 
 		try {
 			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
@@ -463,43 +462,63 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (gameState == STATE_LEVEL_SELECT) {
 			batch.begin();
-			font2.draw(batch, "Level Select", width / 2 - 300, height - 100);
+			StoryModeCategories currentCategory = categories[currentCategoryIndex];
+			font2.draw(batch, "Level Select - " + currentCategory.name() + " Levels", width/2 - 300, height - 100);
 			batch.end();
+
+			ArrayList<StoryLevel> levels = getLevelsForCategory(currentCategory);
+
+			int levelsPerPage = levels.size();
+			int columns = 4;
+			int rows = levelsPerPage / columns;
+
+			int tileWidth = (width - 200) / columns; // leave buffer between level tiles
+			int tileHeight = (height - 300) / rows; // leave space for title + arrows
+
+			int startIndex = currentPage * levelsPerPage;
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
 
-			int levelsPerPage = 18;
-			int startIndex = currentPage * levelsPerPage;
-
 			for (int i = 0; i < levelsPerPage; i++) {
-				if (startIndex + i >= storyLevels.size()) break;
+				if (startIndex + i >= levels.size()) break;
 
-				StoryLevel level = storyLevels.get(startIndex + i);
-				float x = 100 + (i % 6) * 200;
-				float y = height - 200 - (i / 6) * 150;
+				StoryLevel level = levels.get(startIndex + i);
 
-				if (level.isUnlocked()) {
-					shapes.setColor(Color.CYAN);
-				} else {
-					shapes.setColor(Color.DARK_GRAY);
-				}
+				int col = i % columns;
+				int row = i / columns;
 
-				shapes.rect(x, y, 150, 100);
+				float x = col * tileWidth;
+				float y = height - 200 - (row + 1) * tileHeight;
+
+				if (level.isUnlocked()) shapes.setColor(Color.CYAN);
+				else shapes.setColor(Color.DARK_GRAY);
+
+				shapes.rect(x, y, tileWidth - 20, tileHeight - 20);
 			}
 
 			shapes.end();
 
 			batch.begin();
 			for (int i = 0; i < levelsPerPage; i++) {
-				if (startIndex + i >= storyLevels.size()) break;
+				if (startIndex + i >= levels.size()) break;
 
-				StoryLevel level = storyLevels.get(startIndex + i);
-				float x = 100 + (i % 6) * 200;
-				float y = height - 200 - (i / 6) * 150;
+				StoryLevel level = levels.get(startIndex + i);
 
-				font1.draw(batch, String.valueOf(level.getLevelNumber()), x + 50, y + 60);
+				int col = i % columns;
+				int row = i / columns;
+
+				float x = col * tileWidth;
+				float y = height - 200 - (row + 1) * tileHeight;
+
+				font1.draw(batch, String.valueOf(level.getLevelNumber()), x + tileWidth/2 - 20, y + tileHeight/2);
 			}
 			batch.end();
+
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+			shapes.setColor(Color.WHITE);
+			shapes.triangle(80, height - 100, 130, height - 50, 130, height - 150); // left arrow
+			shapes.triangle(width - 80, height - 100, width - 130, height - 50, width - 130, height - 150); // right arrow
+			shapes.end();
 
 			// Handle input
 			if (Gdx.input.justTouched()) {
@@ -519,10 +538,47 @@ public class MyGdxGame extends ApplicationAdapter {
 							currentLevel = selected;
 							gameState = STATE_STORY;
 							startStoryLevel(currentLevel);
+							velocity = 0;
 						}
 					}
 				}
+				if (leftArrow.contains(tx, ty)) {
+					if (currentCategoryIndex > 0) {
+						currentCategoryIndex--;
+						currentPage = 0;
+					}
+					return;
+				}
+
+				if (rightArrow.contains(tx, ty)) {
+					if (currentCategoryIndex < categories.length - 1) {
+						currentCategoryIndex++;
+						currentPage = 0;
+					}
+					return;
+				}
 			}
+		}
+
+		if (gameState == STATE_STORY) {
+			// identical to STATE_RUNNING but WITHOUT random barrier resets
+			velocity++;
+			ballY -= velocity;
+
+			if (ballY <= 0) {
+				ballY = 0;
+				velocity = -10;
+				if (soundEnabled) bounceSound.play();
+			}
+
+			if (ballY >= height - 100) {
+				ballY = height - 100;
+			}
+
+			// draw barriers using supportHeight[] (already set by startStoryLevel)
+			// draw ball
+			// detect collisions
+			// detect level completion
 		}
 
 		if (gameState == STATE_CONTINUE_SCREEN) {
@@ -870,6 +926,16 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		shapes.end();
+	}
+
+	private ArrayList<StoryLevel> getLevelsForCategory(StoryModeCategories category) {
+		ArrayList<StoryLevel> list = new ArrayList<>();
+		for (StoryLevel level : storyLevels) {
+			if (level.getCategory() == category) {
+				list.add(level);
+			}
+		}
+		return list;
 	}
 
 	public void saveScore(String username, int score, String filename) {
