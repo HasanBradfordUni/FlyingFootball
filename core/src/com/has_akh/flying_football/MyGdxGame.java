@@ -50,6 +50,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	BitmapFont font, font1, font2, leaderboardFont;
 	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton, ContinueGameButton, soundToggleButton;
 	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton, backToHomeButton;
+	Rectangle levelCompleteBackButton, levelCompleteReplayButton, levelCompleteNextButton;
 	private String enteredUsername = null;
 	int collisionCooldown = 0;
 	int scoringBarrier = 0;
@@ -86,6 +87,9 @@ public class MyGdxGame extends ApplicationAdapter {
 		leftArrow = new Rectangle(50, Gdx.graphics.getHeight() - 150, 100, 100);
 		rightArrow = new Rectangle(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 150, 100, 100);
 		backToHomeButton = new Rectangle(Gdx.graphics.getWidth() / 2f - 200,50,400, 100);
+		levelCompleteBackButton = new Rectangle(Gdx.graphics.getWidth()/2 - 600, 200, 350, 120);
+		levelCompleteReplayButton = new Rectangle(Gdx.graphics.getWidth()/2 - 175, 200, 350, 120);
+		levelCompleteNextButton = new Rectangle(Gdx.graphics.getWidth()/2 + 250, 200, 350, 120);
 		batch = new SpriteBatch();
 		storyLevels = new ArrayList<>();
 		background = new Texture("Background.jpg");
@@ -471,6 +475,83 @@ public class MyGdxGame extends ApplicationAdapter {
 				}
 			}
 			return;
+		}
+
+		if (gameState == STATE_STORY_LEVEL_COMPLETE) {
+
+			batch.begin();
+
+			String title = "LEVEL " + currentLevel.getLevelNumber() +
+					" COMPLETED (" + currentLevel.getCategory().name() + ")";
+			GlyphLayout layout = new GlyphLayout(font2, title);
+			font2.draw(batch, layout,
+					Gdx.graphics.getWidth()/2 - layout.width/2,
+					Gdx.graphics.getHeight() - 200);
+
+			batch.end();
+
+			// Draw buttons
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+			shapes.setColor(Color.BLUE);
+			shapes.rect(levelCompleteBackButton.x, levelCompleteBackButton.y,
+					levelCompleteBackButton.width, levelCompleteBackButton.height);
+
+			shapes.setColor(Color.GRAY);
+			shapes.rect(levelCompleteReplayButton.x, levelCompleteReplayButton.y,
+					levelCompleteReplayButton.width, levelCompleteReplayButton.height);
+
+			shapes.setColor(Color.GREEN);
+			shapes.rect(levelCompleteNextButton.x, levelCompleteNextButton.y,
+					levelCompleteNextButton.width, levelCompleteNextButton.height);
+
+			shapes.end();
+
+			batch.begin();
+			font1.draw(batch, "BACK TO LEVEL SELECT",
+					levelCompleteBackButton.x + 20,
+					levelCompleteBackButton.y + 75);
+
+			font1.draw(batch, "REPLAY LEVEL",
+					levelCompleteReplayButton.x + 40,
+					levelCompleteReplayButton.y + 75);
+
+			font1.draw(batch, "NEXT LEVEL",
+					levelCompleteNextButton.x + 60,
+					levelCompleteNextButton.y + 75);
+
+			batch.end();
+
+			// Handle input
+			if (Gdx.input.justTouched()) {
+				float tx = Gdx.input.getX();
+				float ty = Gdx.graphics.getHeight() - Gdx.input.getY();
+
+				if (levelCompleteBackButton.contains(tx, ty)) {
+					gameState = STATE_LEVEL_SELECT;
+					return;
+				}
+
+				if (levelCompleteReplayButton.contains(tx, ty)) {
+					startStoryLevel(currentLevel);
+					gameState = STATE_STORY;
+					return;
+				}
+
+				if (levelCompleteNextButton.contains(tx, ty)) {
+					int nextIndex = currentLevel.getLevelNumber();
+					if (nextIndex < storyLevels.size()) {
+						currentLevel = storyLevels.get(nextIndex);
+						startStoryLevel(currentLevel);
+						gameState = STATE_STORY;
+					} else {
+						gameState = STATE_LEVEL_SELECT; // No more levels
+					}
+					return;
+				}
+			}
+
+			return; // Prevent falling through to other states
 		}
 
 		if (gameState == STATE_OTHER_SCREEN) {
