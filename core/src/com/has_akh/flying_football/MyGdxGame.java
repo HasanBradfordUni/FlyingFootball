@@ -25,11 +25,13 @@ import java.util.Comparator;
 import java.util.Random;
 
 public class MyGdxGame extends ApplicationAdapter {
+	private AdService adService;
 	SpriteBatch batch;
 	ShapeRenderer shapes;
 	Texture background;
 	Texture gameover;
 	Texture pausedGraphic;
+	Texture adBoardTexture;
 	Texture[] footballs;
 	Ellipse footballOval;
 	Rectangle[] lowerBarriers, upperBarriers;
@@ -82,6 +84,14 @@ public class MyGdxGame extends ApplicationAdapter {
 	Rectangle leftArrow;
 	Rectangle rightArrow;
 
+	public MyGdxGame(AdService adService) {
+		this.adService = adService;
+	}
+
+	public MyGdxGame() {
+		this.adService = null;
+	}
+
 	@Override
 	public void create () {
 		leftArrow = new Rectangle(50, Gdx.graphics.getHeight() - 150, 100, 100);
@@ -90,6 +100,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		levelCompleteBackButton = new Rectangle(Gdx.graphics.getWidth()/2 - 600, 200, 350, 120);
 		levelCompleteReplayButton = new Rectangle(Gdx.graphics.getWidth()/2 - 175, 200, 350, 120);
 		levelCompleteNextButton = new Rectangle(Gdx.graphics.getWidth()/2 + 250, 200, 350, 120);
+		adBoardTexture = new Texture("adboard.png"); // simple blank board
 		batch = new SpriteBatch();
 		storyLevels = new ArrayList<>();
 		background = new Texture("Background.jpg");
@@ -725,6 +736,23 @@ public class MyGdxGame extends ApplicationAdapter {
 			}
 
 			batch.end();
+
+			// Draw ad board placeholder
+			batch.begin();
+			batch.setColor(1,1,1,1);
+			batch.draw(adBoardTexture,
+					Gdx.graphics.getWidth()/2 - 400,
+					20,
+					800,
+					120
+			);
+			batch.end();
+		}
+
+		if (gameState == STATE_RUNNING || gameState == STATE_STORY || gameState == STATE_RUNNING2) {
+			if (adService != null) adService.showBanner();
+		} else {
+			if (adService != null) adService.hideBanner();
 		}
 
 		if (gameState == STATE_STORY) {
@@ -959,6 +987,17 @@ public class MyGdxGame extends ApplicationAdapter {
 				}
 				scoringGoal = (scoringGoal + 1) % numOfGoals;
 			}
+
+			// Draw ad board placeholder
+			batch.begin();
+			batch.setColor(1,1,1,1);
+			batch.draw(adBoardTexture,
+					Gdx.graphics.getWidth()/2 - 400,
+					20,
+					800,
+					120
+			);
+			batch.end();
 
 			for (int i = 0; i < numOfGoals; i++) {
 
