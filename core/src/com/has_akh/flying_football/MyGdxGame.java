@@ -32,6 +32,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	Texture gameover;
 	Texture pausedGraphic;
 	Texture adBoardTexture;
+	Texture starFull, starEmpty;
 	Texture[] footballs;
 	Ellipse footballOval;
 	Rectangle[] lowerBarriers, upperBarriers;
@@ -57,6 +58,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	int collisionCooldown = 0;
 	int scoringBarrier = 0;
 	Sound jumpSound, goalSound, barrierHitSound, bounceSound, saveScoreSound;
+	FileHandle starFile;
 
 	// Define game states
 	final int STATE_NOT_STARTED = -1;
@@ -97,7 +99,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		leftArrow = new Rectangle(50, Gdx.graphics.getHeight() - 150, 100, 100);
 		rightArrow = new Rectangle(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 150, 100, 100);
 		backToHomeButton = new Rectangle(Gdx.graphics.getWidth() / 2f - 200,50,400, 100);
-		levelCompleteBackButton = new Rectangle(Gdx.graphics.getWidth()/2 - 600, 200, 350, 120);
+		levelCompleteBackButton = new Rectangle(Gdx.graphics.getWidth()/2 - 700, 200, 450, 120);
 		levelCompleteReplayButton = new Rectangle(Gdx.graphics.getWidth()/2 - 175, 200, 350, 120);
 		levelCompleteNextButton = new Rectangle(Gdx.graphics.getWidth()/2 + 250, 200, 350, 120);
 		adBoardTexture = new Texture("adboard.png"); // simple blank board
@@ -114,6 +116,8 @@ public class MyGdxGame extends ApplicationAdapter {
 		footballOval = new Ellipse();
 		footballs[0] = new Texture("Football.png");
 		footballs[1] = new Texture("Football2.png");
+		starFull = new Texture("star.png");
+		starEmpty = new Texture("empty_star.png");
 		ballY = (Gdx.graphics.getHeight()/2) - 100;
 		randomGenerator = new Random();
 		goalVelocity = 3;
@@ -225,10 +229,10 @@ public class MyGdxGame extends ApplicationAdapter {
 				// Example barrier heights: vary by category and level
 				float[] barrierHeights = new float[i+2];
 				for (int j = 0; j < i+2; j++) {
-					barrierHeights[j] = 200 + (category.ordinal() * 50) + (i * 5); // Scales with category and level
+					barrierHeights[j] = 150 + (category.ordinal() * 50) + (i * 5); // Scales with category and level
 				}
 
-				float speed = 3 + category.ordinal(); // Increase speed with difficulty
+				float speed = 3 + (3 * category.ordinal()); // Increase speed with difficulty
 				int lives = 3; // You can vary this too
 
 				boolean unlocked = (i == 1); // Only first level in each category is unlocked
@@ -239,6 +243,41 @@ public class MyGdxGame extends ApplicationAdapter {
 				totalLevelCount++;
 			}
 		}
+
+		starFile = Gdx.files.local("stars.txt");
+		if (!starFile.exists()) {
+			// Initialize file with 0 stars for all levels
+			StringBuilder builder = new StringBuilder();
+			for (StoryLevel lvl : storyLevels) {
+				builder.append("Level ")
+						.append(lvl.getLevelNumber())
+						.append(",")
+						.append(lvl.getCategory().name())
+						.append(",0 Stars\n");
+			}
+			starFile.writeString(builder.toString(), false);
+		}
+	}
+
+	private void saveStarsForLevel(StoryLevel level, int stars) {
+		String[] lines = starFile.readString().split("\n");
+		StringBuilder updated = new StringBuilder();
+
+		for (String line : lines) {
+			if (line.startsWith("Level " + level.getLevelNumber() + ",")) {
+				updated.append("Level ")
+						.append(level.getLevelNumber())
+						.append(",")
+						.append(level.getCategory().name())
+						.append(",")
+						.append(stars)
+						.append(" Stars\n");
+			} else {
+				updated.append(line).append("\n");
+			}
+		}
+
+		starFile.writeString(updated.toString(), false);
 	}
 
 	public void saveEndlessState() {
@@ -314,6 +353,18 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		goalVelocity = (int) level.getSpeed();
+	}
+
+	private int getStarsForLevel(int levelNumber) {
+		String[] lines = starFile.readString().split("\n");
+		for (String line : lines) {
+			if (line.startsWith("Level " + levelNumber + ",")) {
+				String[] parts = line.split(",");
+				String starPart = parts[2].trim(); // e.g. "3 Stars"
+				return Integer.parseInt(starPart.split(" ")[0]);
+			}
+		}
+		return 0;
 	}
 
 	@Override
@@ -520,7 +571,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.begin();
 			font1.draw(batch, "BACK TO LEVEL SELECT",
-					levelCompleteBackButton.x + 20,
+					levelCompleteBackButton.x,
 					levelCompleteBackButton.y + 75);
 
 			font1.draw(batch, "REPLAY LEVEL",
@@ -561,6 +612,37 @@ public class MyGdxGame extends ApplicationAdapter {
 					return;
 				}
 			}
+
+			// -----------------------------
+			// Draw Star Rating
+			// -----------------------------
+			batch.begin();
+
+			int maxLives = currentLevel.getMaxLives();
+			int currentLives = currentLevel.getLives();
+
+			// Star sizes
+			int starSize = 150;
+			int spacing = 40;
+
+			// Total width of all stars + spacing
+			int totalWidth = maxLives * starSize + (maxLives - 1) * spacing;
+
+			// Center horizontally
+			int startX = (Gdx.graphics.getWidth() - totalWidth) / 2;
+			int startY = Gdx.graphics.getHeight() / 2 - 50; // Adjust vertical position as needed
+
+			for (int i = 0; i < maxLives; i++) {
+				Texture tex = (i < currentLives) ? starFull : starEmpty;
+				batch.draw(tex,
+						startX + i * (starSize + spacing),
+						startY,
+						starSize,
+						starSize
+				);
+			}
+
+			batch.end();
 
 			return; // Prevent falling through to other states
 		}
@@ -645,6 +727,23 @@ public class MyGdxGame extends ApplicationAdapter {
 				float y = startY - row * (tileHeight + verticalGap);
 
 				font1.draw(batch, String.valueOf(level.getLevelNumber()), x + tileWidth / 2 - 15, y + tileHeight / 2 + 15);
+				int stars = getStarsForLevel(level.getLevelNumber());
+
+				int smallStarSize = 40;
+				int starSpacing = 10;
+
+				// bottom-right corner of tile
+				int starX = (int)(x + tileWidth - (smallStarSize * 3 + starSpacing * 2) - 10);
+				int starY = (int)(y + 10);
+
+				for (int s = 0; s < 3; s++) {
+					Texture tex = (s < stars) ? starFull : starEmpty;
+					batch.draw(tex,
+							starX + s * (smallStarSize + starSpacing),
+							starY,
+							smallStarSize,
+							smallStarSize);
+				}
 			}
 			batch.end();
 
@@ -662,7 +761,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.begin();
 			font1.draw(batch, "BACK TO HOME",
-					backToHomeButton.x + backToHomeButton.width / 2f - 120,
+					backToHomeButton.x + 20,
 					backToHomeButton.y + backToHomeButton.height / 2f + 20);
 			batch.end();
 
@@ -859,6 +958,8 @@ public class MyGdxGame extends ApplicationAdapter {
 				if (allPassed) {
 					// Mark level complete
 					currentLevel.completeLevel();
+					int starsEarned = currentLevel.getLives(); // 0–3
+					saveStarsForLevel(currentLevel, starsEarned);
 
 					// Unlock next level
 					int nextIndex = currentLevel.getLevelNumber(); // numbering starts at 1
