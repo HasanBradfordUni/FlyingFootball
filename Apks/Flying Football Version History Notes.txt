@@ -92,3 +92,39 @@ Endless mode was added properly now with some bugs being sorted out then. Almost
 
 Version 1.77 (July/August 2025)
 Can now continue endless games from where left off at any time. An additional screen appears if there is a saved endless game (saves automatically when game paused) that has a green button on the left to Continue and a New Game button on the right. Changes to minus score system in Endless mode to make sure that points only get subtracted by 1 each time, full separation of Endless and Classic scoreboards, flashing of buttons on other screen fixed, fixed game crashing issues. Also can now go back to main menu from game select screen (tap anywhere other than the buttons). Finally added Realistic Audio sounds for moving the ball up, when it goes through goals, when it hits barriers, when it hits the bottom and bounces up and also when saving the score after the game is over.
+
+Version 1.78 (September 2025)
+Updated leaderboard logic for Endless and Classic modes. Improved the way scores are recorded and displayed, ensuring that both modes remain fully separated and accurate.
+
+Version 1.79 (September 2025)
+Several gameplay and stability improvements were made across multiple builds of this version. Fixed several gameplay and stability issues, including jump height, Endless scoring, mode‑switch glitch, ShapeRenderer crash, barrier alignment, and game speed adjustments. Attempted barrier outline changes but caused instability. This version was not fully stable and required further refinement in later updates.
+
+Version 1.80 (January 2026)
+Initial Story Mode groundwork added, including the new StoryLevel class, basic category system, and enum for level types. Implemented early logic for generating all Story Mode levels and began integrating Story Mode structure into the game. This version established the core foundation for later Story Mode development.
+
+Version 1.81 (January 2026)
+Major structural update for Story Mode. Added full level generation (120 levels), StoryLevel support for barriers, speed, lives, numbering and unlock state, plus StoryModeCategories integration. Introduced new Story Mode game states, category‑based level select with navigation, proportional tile layout, and level initialisation logic. Cleaned UI, removed duplicate code, and prepared the full Story Mode framework.
+
+Version 1.82 (January 2026)
+Added the first playable version of Story Mode. A basic level could now be opened from the level select menu, although the ball did not jump yet. Level tiles on the level select screen were centred properly along with the category title, creating a cleaner and more uniform layout.
+
+Version 1.83 (January 2026)
+Addressed several visual and functional issues reported during early testing. Improved text alignment, fixed broken hitboxes on the level select screen, and restored jump input in Story Mode. Updated all fonts to Roboto Condensed for improved clarity and added a new jump sound effect. Also resolved a bug where Story Mode levels failed to start due to mismatched hitbox coordinates.
+
+Version 1.84 (January 2026)
+A wide range of improvements were made across Story Mode and the main game. Fixed text rendering and alignment issues, improved Story Mode level select visuals, added a Back to Home button, resolved jump glitches, and improved the game over UI for Classic and Endless modes. Also added a shorter tap sound and fixed several array sizing issues that caused crashes when loading Story Mode levels. Story Mode levels now initialise correctly with variable obstacle counts, and a new lives display system using heart icons was added.
+
+Version 1.85 (February 2026)
+Added a polished Level Complete screen for Story Mode. The category and level number now display when a level is completed. Three new buttons were added (“Back to Level Select”, “Replay Level”, “Next Level”), each with full navigation logic. Integrated cleanly with existing game states.
+
+Version 1.86 (April 2026)
+Added an advertisement board to the bottom of the screen and integrated it with test ads using Google AdSense. No gameplay changes in this version.
+
+Version 1.87 (April 2026)
+Added the stars system for Story Mode. Stars now correspond to remaining lives at the end of a level and are displayed on the level‑complete screen, saved to a text file, and shown on the level select screen. Also included several minor UI adjustments.
+
+Version 1.88 (May 2026)
+Internal development version containing foundational changes for the upcoming scoring and cinematic systems. No major user‑visible features were finalised in this version.
+
+Version 1.89 (June 2026)
+A major update focused on Story Mode progression, cinematics, scoring, and UI improvements. Added a full scoring system with bonuses, penalties, multipliers, persistent saving, and a Story Mode leaderboard. Introduced in‑game score HUD, level‑complete summaries, and automatic “NEW HIGH SCORE!” detection. Added a new cinematic state with timed auto‑play and tap‑to‑skip, improved multi‑frame loading, and fixed level‑start sequencing. Leaderboard handling was refined with proper sorting and Story Mode auto‑switching. UI updates included improved level‑select tiles, star indicators, spacing tweaks, and cleaner level‑complete layouts.
