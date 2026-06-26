@@ -9,7 +9,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
@@ -25,18 +24,14 @@ import java.util.Comparator;
 import java.util.Random;
 
 public class MyGdxGame extends ApplicationAdapter {
-	private AdService adService;
 	SpriteBatch batch;
 	ShapeRenderer shapes;
 	Texture background;
 	Texture gameover;
 	Texture pausedGraphic;
-	Texture adBoardTexture;
-	Texture starFull, starEmpty;
 	Texture[] footballs;
 	Ellipse footballOval;
 	Rectangle[] lowerBarriers, upperBarriers;
-	Texture goalSupport, goal, heartFull, heartEmpty;
 	Circle football;
 	int thisFootball;
 	float ballY;
@@ -49,16 +44,10 @@ public class MyGdxGame extends ApplicationAdapter {
 	float[] supportHeight = new float[numOfGoals];
 	float distanceBetweenGoals;
 	int score = 0, scoringGoal = 0;
-	boolean collision, soundEnabled, showOutlines, newHighScoreFlag;
-	;
 	BitmapFont font, font1, font2, leaderboardFont;
 	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton, ContinueGameButton, soundToggleButton;
-	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton, backToHomeButton;
-	Rectangle levelCompleteBackButton, levelCompleteReplayButton, levelCompleteNextButton;
 	private String enteredUsername = null;
-	int collisionCooldown = 0, storyScore = 0, scoringBarrier = 0;
 	Sound jumpSound, goalSound, barrierHitSound, bounceSound, saveScoreSound;
-	FileHandle starFile, storyScoreFile;
 
 	// Define game states
 	final int STATE_NOT_STARTED = -1;
@@ -74,7 +63,6 @@ public class MyGdxGame extends ApplicationAdapter {
 	final int STATE_STORY = 9;
 	final int STATE_STORY_LEVEL_COMPLETE = 10;
 	final int STATE_LEVEL_SELECT = 11;
-	final int STATE_CINEMATIC = 12;
 	private int previousGameMode;
 	private String filename;
 	private FileHandle scoresFile, endlessScoresFile;
@@ -84,30 +72,11 @@ public class MyGdxGame extends ApplicationAdapter {
 	private StoryLevel currentLevel;
 	private int currentCategoryIndex = 0;
 	StoryModeCategories[] categories = StoryModeCategories.values(); //Converting the enum to an array for level creation
-	Rectangle leftArrow, rightArrow;
-	ArrayList<Texture> cinematicFrames;
-	int currentCinematicFrame = 0;
-	boolean cinematicSkippable = true;
-	float cinematicTimer = 0f, cinematicFrameDuration = 0.2f; // 0.2 seconds per frame
-	int cinematicNextState = STATE_STORY;
-
-	public MyGdxGame(AdService adService) {
-		this.adService = adService;
-	}
-
-	public MyGdxGame() {
-		this.adService = null;
-	}
 
 	@Override
 	public void create () {
 		leftArrow = new Rectangle(50, Gdx.graphics.getHeight() - 150, 100, 100);
 		rightArrow = new Rectangle(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 150, 100, 100);
-		backToHomeButton = new Rectangle(Gdx.graphics.getWidth() / 2f - 200,50,400, 100);
-		levelCompleteBackButton = new Rectangle(Gdx.graphics.getWidth()/2 - 700, 200, 450, 120);
-		levelCompleteReplayButton = new Rectangle(Gdx.graphics.getWidth()/2 - 175, 200, 350, 120);
-		levelCompleteNextButton = new Rectangle(Gdx.graphics.getWidth()/2 + 250, 200, 350, 120);
-		adBoardTexture = new Texture("adboard.png"); // simple blank board
 		batch = new SpriteBatch();
 		storyLevels = new ArrayList<>();
 		background = new Texture("Background.jpg");
@@ -116,13 +85,9 @@ public class MyGdxGame extends ApplicationAdapter {
 		footballs = new Texture[2];
 		goalSupport = new Texture("GoalSupport.png");
 		goal = new Texture("Goal.png");
-		heartFull = new Texture("heart1.png");   // full life
-		heartEmpty = new Texture("heart2.png");  // lost life
 		footballOval = new Ellipse();
 		footballs[0] = new Texture("Football.png");
 		footballs[1] = new Texture("Football2.png");
-		starFull = new Texture("star.png");
-		starEmpty = new Texture("empty_star.png");
 		ballY = (Gdx.graphics.getHeight()/2) - 100;
 		randomGenerator = new Random();
 		goalVelocity = 3;
@@ -130,17 +95,14 @@ public class MyGdxGame extends ApplicationAdapter {
 		lowerBarriers = new Rectangle[numOfGoals];
 		upperBarriers = new Rectangle[numOfGoals];
 		football = new Circle();
-		jumpSound = Gdx.audio.newSound(Gdx.files.internal("tap_short.mp3"));
 		goalSound = Gdx.audio.newSound(Gdx.files.internal("goal.mp3"));
 		barrierHitSound = Gdx.audio.newSound(Gdx.files.internal("barrier.mp3"));
 		bounceSound = Gdx.audio.newSound(Gdx.files.internal("bounce.mp3"));
 		saveScoreSound = Gdx.audio.newSound(Gdx.files.internal("save.mp3"));
 		soundEnabled = true;
 		showOutlines = false;
-		newHighScoreFlag = false;
 
 		try {
-			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("RobotoCondensed-VariableFont_wght.ttf"));
 			FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
 
 			parameter.size = 100;
@@ -184,10 +146,6 @@ public class MyGdxGame extends ApplicationAdapter {
 		if (!endlessScoresFile.exists()) {
 			endlessScoresFile.writeString("", false);
 		}
-		storyScoreFile = Gdx.files.local("story_scores.txt");
-		if (!storyScoreFile.exists()) {
-			storyScoreFile.writeString("", false);
-		}
 
 		// Define menu button areas
 		playGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 500, 500, 100);
@@ -228,18 +186,6 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 	}
 
-	private float getCategoryMultiplier(StoryModeCategories category) {
-		switch (category) {
-			case NOOB: return 1f;
-			case DECENT: return 1.2f;
-			case INTERMEDIATE: return 1.5f;
-			case ADEPT: return 2f;
-			case PRO: return 2.5f;
-			case HACKER: return 5f;
-		}
-		return 1f;
-	}
-
 	public void createLevels() {
 		int levelsPerCategory = 20;
 		int totalLevelCount = 0;
@@ -249,12 +195,8 @@ public class MyGdxGame extends ApplicationAdapter {
 				int levelNumber = totalLevelCount + 1;
 
 				// Example barrier heights: vary by category and level
-				float[] barrierHeights = new float[i+2];
-				for (int j = 0; j < i+2; j++) {
-					barrierHeights[j] = 150 + (category.ordinal() * 50) + (i * 5); // Scales with category and level
 				}
 
-				float speed = 3 + (3 * category.ordinal()); // Increase speed with difficulty
 				int lives = 3; // You can vary this too
 
 				boolean unlocked = (i == 1); // Only first level in each category is unlocked
@@ -265,57 +207,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				totalLevelCount++;
 			}
 		}
-
-		starFile = Gdx.files.local("stars.txt");
-		if (!starFile.exists()) {
-			// Initialize file with 0 stars for all levels
-			StringBuilder builder = new StringBuilder();
-			for (StoryLevel lvl : storyLevels) {
-				builder.append("Level ")
-						.append(lvl.getLevelNumber())
-						.append(",")
-						.append(lvl.getCategory().name())
-						.append(",0 Stars\n");
-			}
-			starFile.writeString(builder.toString(), false);
-		}
-	}
-
-	private void saveStarsForLevel(StoryLevel level, int stars) {
-		String[] lines = starFile.readString().split("\n");
-		StringBuilder updated = new StringBuilder();
-
-		for (String line : lines) {
-			if (line.startsWith("Level " + level.getLevelNumber() + ",")) {
-				updated.append("Level ")
-						.append(level.getLevelNumber())
-						.append(",")
-						.append(level.getCategory().name())
-						.append(",")
-						.append(stars)
-						.append(" Stars\n");
-			} else {
-				updated.append(line).append("\n");
-			}
-		}
-
-		starFile.writeString(updated.toString(), false);
-	}
-
-	public void startCinematic(String folderName, boolean skippable, int nextState) {
-		cinematicFrames = new ArrayList<>();
-		currentCinematicFrame = 0;
-		cinematicSkippable = skippable;
-		cinematicNextState = nextState;
-		cinematicTimer = 0f;
-
-		for (int i = 1; i <= 10; i++) {
-			FileHandle fh = Gdx.files.internal("cinematics/" + folderName + "/frame" + i + ".png");
-			if (!fh.exists()) break;
-			cinematicFrames.add(new Texture(fh));
-		}
-
-		gameState = STATE_CINEMATIC;
 	}
 
 	public void saveEndlessState() {
@@ -356,53 +247,17 @@ public class MyGdxGame extends ApplicationAdapter {
 		enteredUsername = null; // Reset for next input
 	}
 
-	private void rebuildBarriers(int newCount) {
-		numOfGoals = newCount;
-
-		lowerBarriers = new Rectangle[numOfGoals];
-		upperBarriers = new Rectangle[numOfGoals];
-
-		for (int i = 0; i < numOfGoals; i++) {
-			lowerBarriers[i] = new Rectangle();
-			upperBarriers[i] = new Rectangle();
-		}
-	}
-
 	public void startStoryLevel(StoryLevel level) {
 		score = 0;
 		ballY = (Gdx.graphics.getHeight()/2) - 100;
 
-		numOfGoals = level.getBarrierHeights().length;
-
-		supportX = new float[numOfGoals];
-		supportHeight = new float[numOfGoals];
-		lowerBarriers = new Rectangle[numOfGoals];
-		upperBarriers = new Rectangle[numOfGoals];
-
 		float[] levelBarrierHeights = level.getBarrierHeights();
-
-		// Rebuild arrays to match level size
-		rebuildBarriers(levelBarrierHeights.length);
-
-		// Now safe to fill
 		for (int i = 0; i < numOfGoals; i++) {
 			supportX[i] = (Gdx.graphics.getWidth()/2) - 100 + Gdx.graphics.getWidth()/2 + i * distanceBetweenGoals;
 			supportHeight[i] = levelBarrierHeights[i];
 		}
 
 		goalVelocity = (int) level.getSpeed();
-	}
-
-	private int getStarsForLevel(int levelNumber) {
-		String[] lines = starFile.readString().split("\n");
-		for (String line : lines) {
-			if (line.startsWith("Level " + levelNumber + ",")) {
-				String[] parts = line.split(",");
-				String starPart = parts[2].trim(); // e.g. "3 Stars"
-				return Integer.parseInt(starPart.split(" ")[0]);
-			}
-		}
-		return 0;
 	}
 
 	@Override
@@ -429,7 +284,6 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (soundToggleButton.contains(touchX, touchY)) {
 				soundEnabled = !soundEnabled;
 				return;
-			} else if (pauseButton.contains(Gdx.input.getX(), height - Gdx.input.getY())) {
 				previousGameMode = gameState;
 				gameState = STATE_PAUSED;
 				return;
@@ -438,14 +292,9 @@ public class MyGdxGame extends ApplicationAdapter {
 			}
 		}
 
-		if (gameState == STATE_STORY && Gdx.input.justTouched()) {
-			velocity = -20;
-		}
-
 		// Handle the START SCREEN menu
 		if (gameState == STATE_START_SCREEN) {
 			batch.begin();
-			font.draw(batch, "FLYING FOOTBALL", width / 2 - 300, height - 200);
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -464,14 +313,8 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 
 			if (soundEnabled) {
-				font1.draw(batch, "DISABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			} else {
-				font1.draw(batch, "ENABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			}
-			font1.draw(batch, "PLAY GAME", playGameButton.x + 50, playGameButton.y + 60);
-			font1.draw(batch, "LEADERBOARD", leaderboardButton.x + 50, leaderboardButton.y + 60);
-			font1.draw(batch, "SETTINGS", settingsButton.x + 50, settingsButton.y + 60);
-			font1.draw(batch, "EXIT", exitButton.x + 50, exitButton.y + 60);
 
 			batch.end();
 
@@ -498,7 +341,6 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (gameState == STATE_NOT_STARTED) {
 			batch.begin();
-			font.draw(batch, "FLYING FOOTBALL", width / 2 - 300, height - 100);
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -513,9 +355,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 
 			if (soundEnabled) {
-				font1.draw(batch, "DISABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			} else {
-				font1.draw(batch, "ENABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			}
 			font1.draw(batch, "Endless", endlessButton.x + 50, endlessButton.y + 60);
 			font1.draw(batch, "Classic", classicButton.x + 50, classicButton.y + 60);
@@ -577,136 +417,6 @@ public class MyGdxGame extends ApplicationAdapter {
 			return;
 		}
 
-		if (gameState == STATE_STORY_LEVEL_COMPLETE) {
-
-			batch.begin();
-
-			String title = "LEVEL " + currentLevel.getLevelNumber() +
-					" COMPLETED (" + currentLevel.getCategory().name() + ")";
-			GlyphLayout layout = new GlyphLayout(font2, title);
-			font2.draw(batch, layout,
-					width/2 - layout.width/2,
-					height - 200);
-
-			batch.end();
-
-			if (previousGameMode == STATE_STORY) {
-				filename = "story_scores.txt";
-			}
-
-			// Draw buttons
-			shapes.begin(ShapeRenderer.ShapeType.Filled);
-
-			shapes.setColor(Color.BLUE);
-			shapes.rect(levelCompleteBackButton.x, levelCompleteBackButton.y,
-					levelCompleteBackButton.width, levelCompleteBackButton.height);
-
-			shapes.setColor(Color.GRAY);
-			shapes.rect(levelCompleteReplayButton.x, levelCompleteReplayButton.y,
-					levelCompleteReplayButton.width, levelCompleteReplayButton.height);
-
-			shapes.setColor(Color.GREEN);
-			shapes.rect(levelCompleteNextButton.x, levelCompleteNextButton.y,
-					levelCompleteNextButton.width, levelCompleteNextButton.height);
-
-			shapes.end();
-
-			batch.begin();
-			font1.draw(batch, "BACK TO LEVEL SELECT",
-					levelCompleteBackButton.x,
-					levelCompleteBackButton.y + 75);
-
-			font1.draw(batch, "REPLAY LEVEL",
-					levelCompleteReplayButton.x + 40,
-					levelCompleteReplayButton.y + 75);
-
-			font1.draw(batch, "NEXT LEVEL",
-					levelCompleteNextButton.x + 60,
-					levelCompleteNextButton.y + 75);
-
-			batch.end();
-
-			// Handle input
-			if (Gdx.input.justTouched()) {
-				float tx = Gdx.input.getX();
-				float ty = height - Gdx.input.getY();
-
-				if (levelCompleteBackButton.contains(tx, ty)) {
-					gameState = STATE_LEVEL_SELECT;
-					return;
-				}
-
-				if (levelCompleteReplayButton.contains(tx, ty)) {
-					startStoryLevel(currentLevel);
-					gameState = STATE_STORY;
-					return;
-				}
-
-				if (levelCompleteNextButton.contains(tx, ty)) {
-					int nextIndex = currentLevel.getLevelNumber();
-					if (nextIndex < storyLevels.size()) {
-						currentLevel = storyLevels.get(nextIndex);
-						startStoryLevel(currentLevel);
-						gameState = STATE_STORY;
-					} else {
-						gameState = STATE_LEVEL_SELECT; // No more levels
-					}
-					return;
-				}
-			}
-
-			// -----------------------------
-			// Draw Star Rating
-			// -----------------------------
-			batch.begin();
-
-			int maxLives = currentLevel.getMaxLives();
-			int currentLives = currentLevel.getLives();
-
-			// Star sizes
-			int starSize = 150;
-			int spacing = 40;
-
-			// Total width of all stars + spacing
-			int totalWidth = maxLives * starSize + (maxLives - 1) * spacing;
-
-			// Center horizontally
-			int startX = (width - totalWidth) / 2;
-			int startY = height / 2 - 50; // Adjust vertical position as needed
-
-			for (int i = 0; i < maxLives; i++) {
-				Texture tex = (i < currentLives) ? starFull : starEmpty;
-				batch.draw(tex,
-						startX + i * (starSize + spacing),
-						startY,
-						starSize,
-						starSize
-				);
-			}
-
-			batch.end();
-
-			batch.begin();
-			font1.draw(batch,
-					"Score: " + storyScore,
-					centreX + 50,
-					centreY);
-			batch.end();
-
-			batch.begin();
-			if (newHighScoreFlag) {
-				font2.setColor(Color.YELLOW);
-				font2.draw(batch,
-						"NEW HIGH SCORE!",
-						centreX - 150,
-						centreY + 350);
-				font2.setColor(Color.WHITE);
-			}
-			batch.end();
-
-			return; // Prevent falling through to other states
-		}
-
 		if (gameState == STATE_OTHER_SCREEN) {
 			batch.begin();
 			font2.draw(batch, "Coming Soon", width / 2 - 400, height / 2 + 100);
@@ -729,28 +439,14 @@ public class MyGdxGame extends ApplicationAdapter {
 		if (gameState == STATE_LEVEL_SELECT) {
 			batch.begin();
 			StoryModeCategories currentCategory = categories[currentCategoryIndex];
-			String title = "Level Select - " + currentCategory.name() + " Levels";
-			GlyphLayout layout = new GlyphLayout(font2, title);
-			float titleWidth = layout.width;
-			font2.draw(batch, layout, width / 2f - titleWidth / 2f, height - 50);
 			batch.end();
 
 			ArrayList<StoryLevel> levels = getLevelsForCategory(currentCategory);
 
 			int levelsPerPage = levels.size();
 			int columns = 4;
-			int rows = (int) Math.ceil((float) levelsPerPage / columns);
 
-			int tileWidth = 250;
-			int tileHeight = 120;
-			int horizontalGap = 50;
-			int verticalGap = 50;
 
-			int totalGridWidth = columns * tileWidth + (columns - 1) * horizontalGap;
-			int totalGridHeight = rows * tileHeight + (rows - 1) * verticalGap;
-
-			int startX = (width - totalGridWidth) / 2;
-			int startY = height - 400; // leave space for title
 			int startIndex = currentPage * levelsPerPage;
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -763,13 +459,10 @@ public class MyGdxGame extends ApplicationAdapter {
 				int col = i % columns;
 				int row = i / columns;
 
-				float x = startX + col * (tileWidth + horizontalGap);
-				float y = startY - row * (tileHeight + verticalGap);
 
 				if (level.isUnlocked()) shapes.setColor(Color.CYAN);
 				else shapes.setColor(Color.DARK_GRAY);
 
-				shapes.rect(x, y, tileWidth, tileHeight);
 			}
 
 			shapes.end();
@@ -783,27 +476,7 @@ public class MyGdxGame extends ApplicationAdapter {
 				int col = i % columns;
 				int row = i / columns;
 
-				float x = startX + col * (tileWidth + horizontalGap);
-				float y = startY - row * (tileHeight + verticalGap);
 
-				font1.draw(batch, String.valueOf(level.getLevelNumber()), x + tileWidth / 2 - 15, y + tileHeight / 2 + 15);
-				int stars = getStarsForLevel(level.getLevelNumber());
-
-				int smallStarSize = 40;
-				int starSpacing = 10;
-
-				// bottom-right corner of tile
-				int starX = (int)(x + tileWidth - (smallStarSize * 3 + starSpacing * 2) - 10);
-				int starY = (int)(y + 10);
-
-				for (int s = 0; s < 3; s++) {
-					Texture tex = (s < stars) ? starFull : starEmpty;
-					batch.draw(tex,
-							starX + s * (smallStarSize + starSpacing),
-							starY,
-							smallStarSize,
-							smallStarSize);
-				}
 			}
 			batch.end();
 
@@ -813,87 +486,23 @@ public class MyGdxGame extends ApplicationAdapter {
 			shapes.triangle(width - 80, height - 100, width - 130, height - 50, width - 130, height - 150); // right arrow
 			shapes.end();
 
-			// Draw BACK TO HOME button
-			shapes.begin(ShapeRenderer.ShapeType.Filled);
-			shapes.setColor(Color.FIREBRICK); // red-ish button
-			shapes.rect(backToHomeButton.x, backToHomeButton.y, backToHomeButton.width, backToHomeButton.height);
-			shapes.end();
-
-			batch.begin();
-			font1.draw(batch, "BACK TO HOME",
-					backToHomeButton.x + 20,
-					backToHomeButton.y + backToHomeButton.height / 2f + 20);
-			batch.end();
-
 			// Handle input
 			if (Gdx.input.justTouched()) {
 				float tx = Gdx.input.getX();
 				float ty = height - Gdx.input.getY();
 
 				for (int i = 0; i < levelsPerPage; i++) {
-					if (startIndex + i >= levels.size()) break;
 
-					int col = i % columns;
-					int row = i / columns;
 
-					float x = startX + col * (tileWidth + horizontalGap);
-					float y = startY - row * (tileHeight + verticalGap);
-
-					Rectangle button = new Rectangle(x, y, tileWidth, tileHeight);
 					if (button.contains(tx, ty)) {
-						StoryLevel selected = levels.get(startIndex + i);
 						if (selected.isUnlocked()) {
 							currentLevel = selected;
 							gameState = STATE_STORY;
-							if (currentLevel.getLevelNumber() == 1) {
-								startCinematic("intro", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 10) {
-								startCinematic("beginner", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 18) {
-								startCinematic("pitch", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 21) {
-								startCinematic("lowfields", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 33) {
-								startCinematic("fans", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 41) {
-								startCinematic("crowds", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 48) {
-								startCinematic("cameras", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 55) {
-								startCinematic("tunnel", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 61) {
-								startCinematic("floodlights", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 69) {
-								startCinematic("stadium", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 75) {
-								startCinematic("chanting", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 81) {
-								startCinematic("wembley", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 91) {
-								startCinematic("allianz", true, STATE_STORY);
-								return;
-							} if (currentLevel.getLevelNumber() == 99) {
-								startCinematic("bernabeu", true, STATE_STORY);
-								return;
-							}
 							startStoryLevel(currentLevel);
 							velocity = 0;
 						}
 					}
 				}
-
 				if (leftArrow.contains(tx, ty)) {
 					if (currentCategoryIndex > 0) {
 						currentCategoryIndex--;
@@ -909,104 +518,10 @@ public class MyGdxGame extends ApplicationAdapter {
 					}
 					return;
 				}
-
-				// Back to home button
-				if (backToHomeButton.contains(tx, ty)) {
-					gameState = STATE_START_SCREEN;
-					return;
-				}
 			}
-		}
-
-		if (gameState == STATE_CINEMATIC) {
-
-			// Draw current frame
-			batch.begin();
-			batch.draw(cinematicFrames.get(currentCinematicFrame),
-					0, 0,
-					Gdx.graphics.getWidth(),
-					Gdx.graphics.getHeight());
-			batch.end();
-
-			// Auto‑advance timer
-			cinematicTimer += Gdx.graphics.getDeltaTime();
-
-			if (cinematicTimer >= cinematicFrameDuration) {
-				cinematicTimer = 0f;
-				currentCinematicFrame++;
-
-				// Finished all frames → go to next state
-				if (currentCinematicFrame >= cinematicFrames.size()) {
-					gameState = cinematicNextState;
-					return;
-				}
-			}
-
-			// Skip on tap
-			if (Gdx.input.justTouched() && cinematicSkippable) {
-				gameState = cinematicNextState;
-				return;
-			}
-
-			return;
-		}
-
-		// -----------------------------
-		// Draw Lives (Hearts)
-		// -----------------------------
-		if (gameState == STATE_STORY) {
-			batch.begin();
-
-			int maxLives = currentLevel.getMaxLives();   // You may need to add this getter
-			int currentLives = currentLevel.getLives();
-
-			int heartSize = 80;
-			int spacing = 20;
-			int startX = 50;
-			int startY = height - 150;
-
-			for (int i = 0; i < maxLives; i++) {
-				Texture heartTex = (i < currentLives) ? heartFull : heartEmpty;
-				batch.draw(heartTex, startX + i * (heartSize + spacing), startY, heartSize, heartSize);
-			}
-
-			batch.end();
-
-			// Draw Story mode Score text under hearts
-			batch.begin();
-			String scoreText = "Score: " + storyScore;
-			GlyphLayout scoreLayout = new GlyphLayout(font1, scoreText);
-
-			font1.draw(batch,
-					scoreText,
-					width - scoreLayout.width - 50,   // right aligned
-					height - 50);
-
-			batch.end();
-
-			// Draw ad board placeholder
-			batch.begin();
-			batch.setColor(1,1,1,1);
-			batch.draw(adBoardTexture,
-					width/2 - 400,
-					20,
-					800,
-					120
-			);
-			batch.end();
-		}
-
-		if (gameState == STATE_RUNNING || gameState == STATE_STORY || gameState == STATE_RUNNING2) {
-			if (adService != null) adService.showBanner();
-		} else {
-			if (adService != null) adService.hideBanner();
 		}
 
 		if (gameState == STATE_STORY) {
-
-			// -----------------------------
-			// 1. Ball physics
-			// -----------------------------
 			velocity++;
 			ballY -= velocity;
 
@@ -1018,139 +533,6 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			if (ballY >= height - 100) {
 				ballY = height - 100;
-			}
-
-			// -----------------------------
-			// 2. Move barriers (Set amount for level)
-			// -----------------------------
-			for (int i = 0; i < numOfGoals; i++) {
-
-				supportX[i] -= goalVelocity;
-
-				batch.begin();
-				batch.draw(goalSupport, supportX[i], 0, 200, supportHeight[i]);
-				batch.draw(goal, supportX[i], supportHeight[i], 300, 300);
-				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() / 2, supportHeight[i] - 150);
-				upperBarriers[i].set(supportX[i], supportHeight[i] + 450, (float) goal.getWidth() / 2, height - supportHeight[i] - 150);
-				batch.end();
-
-				// Optional red overlay
-				Gdx.gl.glEnable(GL20.GL_BLEND);
-				Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
-				shapes.begin(ShapeRenderer.ShapeType.Filled);
-				shapes.setColor(new Color(1f, 0f, 0f, 0.4f));
-				shapes.rect(upperBarriers[i].x + 10, upperBarriers[i].y - 100, upperBarriers[i].width - 20, upperBarriers[i].height + 100);
-				shapes.end();
-			}
-
-			// -----------------------------
-			// 3. Draw ball
-			// -----------------------------
-			batch.begin();
-			batch.draw(footballs[thisFootball], centreX, ballY, 300, 200);
-			batch.end();
-
-			footballOval.set(centreX, ballY, 300, 200);
-			football.set(footballOval.x, footballOval.y, 100);
-
-			// -----------------------------
-			// 4. Collision detection
-			// -----------------------------
-			boolean hitBarrier = false;
-
-			for (int i = 0; i < numOfGoals; i++) {
-				boolean overlapping = Intersector.overlaps(football, lowerBarriers[i]) ||
-						Intersector.overlaps(football, upperBarriers[i]);
-
-				if (overlapping) {
-					hitBarrier = true;
-					break;
-				}
-			}
-
-			if (hitBarrier) {
-				currentLevel.decrementLives();
-				storyScore -= 50;
-
-				if (soundEnabled) barrierHitSound.play();
-
-				if (currentLevel.getLives() <= 0) {
-					// Level failed → return to level select
-					gameState = STATE_LEVEL_SELECT;
-					return;
-				} else {
-					// Restart the same level with remaining lives
-					startStoryLevel(currentLevel);
-					velocity = 0;
-					return;
-				}
-			}
-
-			// -----------------------------
-			// 5. Level completion detection
-			// -----------------------------
-
-			// If the level is already marked complete, skip checks
-			if (!currentLevel.isCompleted()) {
-
-				boolean allPassed = true;
-
-				// Check if every barrier has moved past the player
-				for (int i = 0; i < numOfGoals; i++) {
-					if (supportX[i] + goal.getWidth() > centreX) {
-						allPassed = false;
-						break;
-					}
-				}
-
-				// Award +100 for each passed goal
-				for (int i = 0; i < numOfGoals; i++) {
-					if (!barrierPenalized[i] && supportX[i] + goal.getWidth() < centreX) {
-						storyScore += 100;
-						barrierPenalized[i] = true;
-					}
-				}
-
-				if (allPassed) {
-					// Mark level complete
-					currentLevel.completeLevel();
-					// Base completion bonus
-					storyScore += 500;
-
-					// Star bonus
-					int starsEarned = currentLevel.getLives(); // 0–3
-					if (starsEarned == currentLevel.getMaxLives()) {
-						storyScore += 200;
-					}
-
-					// Apply category multiplier
-					float multiplier = getCategoryMultiplier(currentLevel.getCategory());
-					storyScore = Math.round(storyScore * multiplier);
-
-					int previousBest = getPreviousStoryScore(currentLevel.getLevelNumber());
-					boolean isNewHighScore = storyScore > previousBest;
-					newHighScoreFlag = isNewHighScore;
-
-					// Save stars
-					saveStarsForLevel(currentLevel, starsEarned);
-
-					// Save score
-					saveStoryScore(currentLevel, storyScore);
-
-					// Unlock next level
-					int nextIndex = currentLevel.getLevelNumber(); // numbering starts at 1
-					if (nextIndex < storyLevels.size()) {
-						StoryLevel next = storyLevels.get(nextIndex);
-						next.unlockLevel();
-					}
-
-					// Move to level complete screen
-					gameState = STATE_STORY_LEVEL_COMPLETE;
-					filename = "story_scores.txt";
-					previousGameMode = STATE_STORY;
-					return;
-				}
 			}
 
 		}
@@ -1208,11 +590,8 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.begin();
 			if (soundEnabled) {
-				font1.draw(batch, "DISABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			} else {
-				font1.draw(batch, "ENABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			}
-			font1.draw(batch, "MAIN MENU", mainMenuButton.x + 80, mainMenuButton.y + 100); // Draw menu text
 			batch.end();
 
 			if (gameState == STATE_PAUSED && previousGameMode == STATE_RUNNING2) {
@@ -1223,7 +602,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				shapes.end();
 
 				batch.begin();
-				font1.draw(batch, "END ENDLESS GAME", endGameButton.x + 30, endGameButton.y + 50);
 				batch.end();
 
 				if (Gdx.input.justTouched()) {
@@ -1249,7 +627,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				if (soundToggleButton.contains(touchX, touchY)) {
 					soundEnabled = !soundEnabled;
 					return;
-				} if (!mainMenuButton.contains(Gdx.input.getX(), height - Gdx.input.getY())) {
 					gameState = STATE_RUNNING; // Resume game
 				} else {
 					gameState = STATE_START_SCREEN; // Return to the main menu
@@ -1267,17 +644,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				}
 				scoringGoal = (scoringGoal + 1) % numOfGoals;
 			}
-
-			// Draw ad board placeholder
-			batch.begin();
-			batch.setColor(1,1,1,1);
-			batch.draw(adBoardTexture,
-					width/2 - 400,
-					20,
-					800,
-					120
-			);
-			batch.end();
 
 			for (int i = 0; i < numOfGoals; i++) {
 
@@ -1330,9 +696,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 			font1.draw(batch, "⏸️", pauseButton.x + 20, pauseButton.y + 80);
 			if (soundEnabled) {
-				font1.draw(batch, "DISABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			} else {
-				font1.draw(batch, "ENABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			}
 
 			footballOval.set(centreX, ballY, 300, 200);
@@ -1387,9 +751,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				font1.draw(batch, savedUsernames.get(i), width / 2f - 200, boxY);
 			}
 
-			font1.setColor(Color.BLACK); // Set text color to black
-			font1.draw(batch, "Enter New Name", width / 2f - 100, enterButtonY + 40); // Centered in 440px box
-			font1.setColor(Color.WHITE); // Reset for other text
 			batch.end();
 
 			if (enteredUsername != null) {
@@ -1419,79 +780,15 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (gameState == STATE_LEADERBOARD_SCREEN) {
 			String title_string = "";
-			if (previousGameMode == STATE_STORY) {
-				filename = "story_scores.txt";
-			}
 
-			if (filename.equals("endless_scores.txt")) {
 				title_string = "Leaderboard (Endless)";
-			} else if (filename.equals("story_scores.txt")) {
-				title_string = "Leaderboard (Story)";
-			} else if (filename.equals(null)) {
 				filename = "scores.txt";
 				title_string = "Leaderboard (Classic)";
 			} else {
 				title_string = "Leaderboard (Classic)";
 			}
 
-			// -----------------------------
-			// STORY MODE LEADERBOARD
-			// -----------------------------
-			if ("story_scores.txt".equals(filename)) {
 
-				String[] lines = storyScoreFile.readString().split("\n");
-
-				// Parse into objects
-				class StoryEntry {
-					int level;
-					String category;
-					int score;
-				}
-
-				ArrayList<StoryEntry> entries = new ArrayList<>();
-
-				for (String line : lines) {
-					if (line.trim().isEmpty()) continue;
-
-					String[] parts = line.split(",");
-					if (parts.length < 3) continue;
-
-					StoryEntry e = new StoryEntry();
-					e.level = Integer.parseInt(parts[0].replace("Level ", "").trim());
-					e.category = parts[1].trim();
-					e.score = Integer.parseInt(parts[2].trim());
-					entries.add(e);
-				}
-
-				// Sort by score descending
-				Collections.sort(entries, new Comparator<StoryEntry>() {
-					@Override
-					public int compare(StoryEntry a, StoryEntry b) {
-						return b.score - a.score; // descending
-					}
-				});
-
-				// Display
-				batch.begin();
-				int yOffset = 0;
-
-				for (StoryEntry e : entries) {
-					String display = "Lvl " + e.level + " (" + e.category + ") - " + e.score;
-					leaderboardFont.draw(batch, display, width / 2f - 200, height - 160 - yOffset);
-					yOffset += 60;
-				}
-
-				batch.end();
-
-				if (Gdx.input.justTouched()) {
-					gameState = STATE_START_SCREEN;
-				}
-				return;
-			}
-
-			// -----------------------------
-			// CLASSIC / ENDLESS LEADERBOARD
-			// -----------------------------
 			ArrayList<String> topScores = getTopScores(filename);
 
 			batch.begin();
@@ -1587,20 +884,6 @@ public class MyGdxGame extends ApplicationAdapter {
 		return list;
 	}
 
-	private int getPreviousStoryScore(int levelNumber) {
-		String[] lines = storyScoreFile.readString().split("\n");
-		int best = 0;
-
-		for (String line : lines) {
-			if (line.startsWith("Level " + levelNumber + ",")) {
-				String[] parts = line.split(",");
-				int score = Integer.parseInt(parts[2].trim());
-				if (score > best) best = score;
-			}
-		}
-		return best;
-	}
-
 	public void saveScore(String username, int score, String filename) {
 		if (filename.equals("scores.txt")) {
 			scoresFile.writeString(username + " " + score + "\n", true); // Append scores
@@ -1610,14 +893,6 @@ public class MyGdxGame extends ApplicationAdapter {
 		if (soundEnabled) {
 			saveScoreSound.play();
 		}
-	}
-
-	private void saveStoryScore(StoryLevel level, int score) {
-		String entry = "Level " + level.getLevelNumber() + "," +
-				level.getCategory().name() + "," +
-				score + "\n";
-
-		storyScoreFile.writeString(entry, true); // append
 	}
 
 	public ArrayList<String> getSavedUsernames(String filename) {
@@ -1697,8 +972,6 @@ public class MyGdxGame extends ApplicationAdapter {
 				enteredUsername = null; // Reset if user cancels input
 				gameState = STATE_GAME_OVER;
 			}
-		}, "ENTER USERNAME", "", "Max 5 characters");
 	}
 
 }
-
