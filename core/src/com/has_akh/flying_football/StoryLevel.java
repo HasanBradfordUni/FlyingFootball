@@ -48,6 +48,7 @@ public class StoryLevel {
         return speed;
     }
 
+    public float getLives() {
         return lives;
     }
 
@@ -106,3 +107,4 @@ public class StoryLevel {
     public void completeLevel() {
         completed = true;
     }
+}
