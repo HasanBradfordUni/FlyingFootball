@@ -463,18 +463,27 @@ public class MyGdxGame extends ApplicationAdapter {
 		if (gameState == STATE_LEVEL_SELECT) {
 			batch.begin();
 			StoryModeCategories currentCategory = categories[currentCategoryIndex];
-			font2.draw(batch, "Level Select - " + currentCategory.name() + " Levels", width/2 - 300, height - 100);
+			String title = "Level Select - " + currentCategory.name() + " Levels";
+			float titleWidth = font2.getRegion().getRegionWidth(); // rough estimate
+			font2.draw(batch, title, width / 2f - title.length() * 10, height - 100);
 			batch.end();
 
 			ArrayList<StoryLevel> levels = getLevelsForCategory(currentCategory);
 
 			int levelsPerPage = levels.size();
 			int columns = 4;
-			int rows = levelsPerPage / columns;
+			int rows = (int) Math.ceil((float) levelsPerPage / columns);
 
-			int tileWidth = (width - 200) / columns; // leave buffer between level tiles
-			int tileHeight = (height - 300) / rows; // leave space for title + arrows
+			int tileWidth = 150;
+			int tileHeight = 100;
+			int horizontalGap = 40;
+			int verticalGap = 40;
 
+			int totalGridWidth = columns * tileWidth + (columns - 1) * horizontalGap;
+			int totalGridHeight = rows * tileHeight + (rows - 1) * verticalGap;
+
+			int startX = (width - totalGridWidth) / 2;
+			int startY = height - 250; // leave space for title
 			int startIndex = currentPage * levelsPerPage;
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -487,13 +496,13 @@ public class MyGdxGame extends ApplicationAdapter {
 				int col = i % columns;
 				int row = i / columns;
 
-				float x = col * tileWidth;
-				float y = height - 200 - (row + 1) * tileHeight;
+				float x = startX + col * (tileWidth + horizontalGap);
+				float y = startY - row * (tileHeight + verticalGap);
 
 				if (level.isUnlocked()) shapes.setColor(Color.CYAN);
 				else shapes.setColor(Color.DARK_GRAY);
 
-				shapes.rect(x, y, tileWidth - 20, tileHeight - 20);
+				shapes.rect(x, y, tileWidth, tileHeight);
 			}
 
 			shapes.end();
@@ -507,10 +516,10 @@ public class MyGdxGame extends ApplicationAdapter {
 				int col = i % columns;
 				int row = i / columns;
 
-				float x = col * tileWidth;
-				float y = height - 200 - (row + 1) * tileHeight;
+				float x = startX + col * (tileWidth + horizontalGap);
+				float y = startY - row * (tileHeight + verticalGap);
 
-				font1.draw(batch, String.valueOf(level.getLevelNumber()), x + tileWidth/2 - 20, y + tileHeight/2);
+				font1.draw(batch, String.valueOf(level.getLevelNumber()), x + tileWidth / 2 - 15, y + tileHeight / 2 + 15);
 			}
 			batch.end();
 
@@ -561,7 +570,10 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		if (gameState == STATE_STORY) {
-			// identical to STATE_RUNNING but WITHOUT random barrier resets
+
+			// -----------------------------
+			// 1. Ball physics
+			// -----------------------------
 			velocity++;
 			ballY -= velocity;
 
@@ -575,10 +587,106 @@ public class MyGdxGame extends ApplicationAdapter {
 				ballY = height - 100;
 			}
 
-			// draw barriers using supportHeight[] (already set by startStoryLevel)
-			// draw ball
-			// detect collisions
-			// detect level completion
+			// -----------------------------
+			// 2. Move barriers (Set amount for level)
+			// -----------------------------
+			for (int i = 0; i < numOfGoals; i++) {
+
+				supportX[i] -= goalVelocity;
+
+				batch.begin();
+				batch.draw(goalSupport, supportX[i], 0, 200, supportHeight[i]);
+				batch.draw(goal, supportX[i], supportHeight[i], 300, 300);
+				lowerBarriers[i].set(supportX[i], 0, (float) goal.getWidth() / 2, supportHeight[i] - 150);
+				upperBarriers[i].set(supportX[i], supportHeight[i] + 450, (float) goal.getWidth() / 2, height - supportHeight[i] - 150);
+				batch.end();
+
+				// Optional red overlay
+				Gdx.gl.glEnable(GL20.GL_BLEND);
+				Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+				shapes.begin(ShapeRenderer.ShapeType.Filled);
+				shapes.setColor(new Color(1f, 0f, 0f, 0.4f));
+				shapes.rect(upperBarriers[i].x + 10, upperBarriers[i].y - 100, upperBarriers[i].width - 20, upperBarriers[i].height + 100);
+				shapes.end();
+			}
+
+			// -----------------------------
+			// 3. Draw ball
+			// -----------------------------
+			batch.begin();
+			batch.draw(footballs[thisFootball], centreX, ballY, 300, 200);
+			batch.end();
+
+			footballOval.set(centreX, ballY, 300, 200);
+			football.set(footballOval.x, footballOval.y, 100);
+
+			// -----------------------------
+			// 4. Collision detection
+			// -----------------------------
+			boolean hitBarrier = false;
+
+			for (int i = 0; i < numOfGoals; i++) {
+				boolean overlapping = Intersector.overlaps(football, lowerBarriers[i]) ||
+						Intersector.overlaps(football, upperBarriers[i]);
+
+				if (overlapping) {
+					hitBarrier = true;
+					break;
+				}
+			}
+
+			if (hitBarrier) {
+				currentLevel.decrementLives();
+
+				if (soundEnabled) barrierHitSound.play();
+
+				if (currentLevel.getLives() <= 0) {
+					// Level failed → return to level select
+					gameState = STATE_LEVEL_SELECT;
+					return;
+				} else {
+					// Restart the same level with remaining lives
+					startStoryLevel(currentLevel);
+					velocity = 0;
+					return;
+				}
+			}
+
+			// -----------------------------
+			// 5. Level completion detection
+			// -----------------------------
+
+			// If the level is already marked complete, skip checks
+			if (!currentLevel.isCompleted()) {
+
+				boolean allPassed = true;
+
+				// Check if every barrier has moved past the player
+				for (int i = 0; i < numOfGoals; i++) {
+					if (supportX[i] + goal.getWidth() > centreX) {
+						allPassed = false;
+						break;
+					}
+				}
+
+				if (allPassed) {
+					// Mark level complete
+					currentLevel.completeLevel();
+
+					// Unlock next level
+					int nextIndex = currentLevel.getLevelNumber(); // numbering starts at 1
+					if (nextIndex < storyLevels.size()) {
+						StoryLevel next = storyLevels.get(nextIndex);
+						next.unlockLevel();
+					}
+
+					// Move to level complete screen
+					gameState = STATE_STORY_LEVEL_COMPLETE;
+					return;
+				}
+			}
+
 		}
 
 		if (gameState == STATE_CONTINUE_SCREEN) {
