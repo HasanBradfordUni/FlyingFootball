@@ -102,7 +102,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		lowerBarriers = new Rectangle[numOfGoals];
 		upperBarriers = new Rectangle[numOfGoals];
 		football = new Circle();
-		jumpSound = Gdx.audio.newSound(Gdx.files.internal("jump.mp3"));
+		jumpSound = Gdx.audio.newSound(Gdx.files.internal("tap_short.mp3"));
 		goalSound = Gdx.audio.newSound(Gdx.files.internal("goal.mp3"));
 		barrierHitSound = Gdx.audio.newSound(Gdx.files.internal("barrier.mp3"));
 		bounceSound = Gdx.audio.newSound(Gdx.files.internal("bounce.mp3"));
@@ -111,7 +111,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		showOutlines = false;
 
 		try {
-			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Lora-VariableFont_wght.ttf"));
+			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("RobotoCondensed-VariableFont_wght.ttf"));
 			FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
 
 			parameter.size = 100;
@@ -290,7 +290,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			goalVelocity = (int) (2 + (score * 1.3));
 		}
 
-		if ((gameState == STATE_RUNNING || gameState == STATE_RUNNING2) && Gdx.input.justTouched()) {
+		if ((gameState == STATE_RUNNING || gameState == STATE_RUNNING2 || gameState == STATE_STORY) && Gdx.input.justTouched()) {
 			float touchX = Gdx.input.getX();
 			float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
 
@@ -309,7 +309,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		// Handle the START SCREEN menu
 		if (gameState == STATE_START_SCREEN) {
 			batch.begin();
-			font.draw(batch, "Flying Football", width / 2 - 300, height - 200);
+			font.draw(batch, "FLYING FOOTBALL", width / 2 - 300, height - 200);
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -328,14 +328,14 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 
 			if (soundEnabled) {
-				font1.draw(batch, "Disable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+				font1.draw(batch, "DISABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			} else {
-				font1.draw(batch, "Enable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+				font1.draw(batch, "ENABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			}
-			font1.draw(batch, "Play Game", playGameButton.x + 50, playGameButton.y + 60);
-			font1.draw(batch, "Leaderboard", leaderboardButton.x + 50, leaderboardButton.y + 60);
-			font1.draw(batch, "Settings", settingsButton.x + 50, settingsButton.y + 60);
-			font1.draw(batch, "Exit", exitButton.x + 50, exitButton.y + 60);
+			font1.draw(batch, "PLAY GAME", playGameButton.x + 50, playGameButton.y + 60);
+			font1.draw(batch, "LEADERBOARD", leaderboardButton.x + 50, leaderboardButton.y + 60);
+			font1.draw(batch, "SETTINGS", settingsButton.x + 50, settingsButton.y + 60);
+			font1.draw(batch, "EXIT", exitButton.x + 50, exitButton.y + 60);
 
 			batch.end();
 
@@ -362,7 +362,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (gameState == STATE_NOT_STARTED) {
 			batch.begin();
-			font.draw(batch, "Flying Football", width / 2 - 300, height - 100);
+			font.draw(batch, "FLYING FOOTBALL", width / 2 - 300, height - 100);
 			batch.end();
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -377,9 +377,9 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 
 			if (soundEnabled) {
-				font1.draw(batch, "Disable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+				font1.draw(batch, "DISABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			} else {
-				font1.draw(batch, "Enable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+				font1.draw(batch, "ENABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			}
 			font1.draw(batch, "Endless", endlessButton.x + 50, endlessButton.y + 60);
 			font1.draw(batch, "Classic", classicButton.x + 50, classicButton.y + 60);
@@ -465,7 +465,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			StoryModeCategories currentCategory = categories[currentCategoryIndex];
 			String title = "Level Select - " + currentCategory.name() + " Levels";
 			float titleWidth = font2.getRegion().getRegionWidth(); // rough estimate
-			font2.draw(batch, title, width / 2f - title.length() * 10, height - 100);
+			font2.draw(batch, title, (width / 2f) - (titleWidth / 2f), height - 50);
 			batch.end();
 
 			ArrayList<StoryLevel> levels = getLevelsForCategory(currentCategory);
@@ -474,10 +474,10 @@ public class MyGdxGame extends ApplicationAdapter {
 			int columns = 4;
 			int rows = (int) Math.ceil((float) levelsPerPage / columns);
 
-			int tileWidth = 150;
-			int tileHeight = 100;
-			int horizontalGap = 40;
-			int verticalGap = 40;
+			int tileWidth = 250;
+			int tileHeight = 120;
+			int horizontalGap = 50;
+			int verticalGap = 50;
 
 			int totalGridWidth = columns * tileWidth + (columns - 1) * horizontalGap;
 			int totalGridHeight = rows * tileHeight + (rows - 1) * verticalGap;
@@ -535,14 +535,17 @@ public class MyGdxGame extends ApplicationAdapter {
 				float ty = height - Gdx.input.getY();
 
 				for (int i = 0; i < levelsPerPage; i++) {
-					if (startIndex + i >= storyLevels.size()) break;
+					if (startIndex + i >= levels.size()) break;
 
-					float x = 100 + (i % 6) * 200;
-					float y = height - 200 - (i / 6) * 150;
+					int col = i % columns;
+					int row = i / columns;
 
-					Rectangle button = new Rectangle(x, y, 150, 100);
+					float x = startX + col * (tileWidth + horizontalGap);
+					float y = startY - row * (tileHeight + verticalGap);
+
+					Rectangle button = new Rectangle(x, y, tileWidth, tileHeight);
 					if (button.contains(tx, ty)) {
-						StoryLevel selected = storyLevels.get(startIndex + i);
+						StoryLevel selected = levels.get(startIndex + i);
 						if (selected.isUnlocked()) {
 							currentLevel = selected;
 							gameState = STATE_STORY;
@@ -551,6 +554,7 @@ public class MyGdxGame extends ApplicationAdapter {
 						}
 					}
 				}
+
 				if (leftArrow.contains(tx, ty)) {
 					if (currentCategoryIndex > 0) {
 						currentCategoryIndex--;
@@ -742,11 +746,11 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.begin();
 			if (soundEnabled) {
-				font1.draw(batch, "Disable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+				font1.draw(batch, "DISABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			} else {
-				font1.draw(batch, "Enable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+				font1.draw(batch, "ENABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			}
-			font1.draw(batch, "Main Menu", mainMenuButton.x + 80, mainMenuButton.y + 100); // Draw menu text
+			font1.draw(batch, "MAIN MENU", mainMenuButton.x + 80, mainMenuButton.y + 100); // Draw menu text
 			batch.end();
 
 			if (gameState == STATE_PAUSED && previousGameMode == STATE_RUNNING2) {
@@ -757,7 +761,7 @@ public class MyGdxGame extends ApplicationAdapter {
 				shapes.end();
 
 				batch.begin();
-				font1.draw(batch, "End Endless Game", endGameButton.x + 30, endGameButton.y + 50);
+				font1.draw(batch, "END ENDLESS GAME", endGameButton.x + 30, endGameButton.y + 50);
 				batch.end();
 
 				if (Gdx.input.justTouched()) {
@@ -853,9 +857,9 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 			font1.draw(batch, "⏸️", pauseButton.x + 20, pauseButton.y + 80);
 			if (soundEnabled) {
-				font1.draw(batch, "Disable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+				font1.draw(batch, "DISABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			} else {
-				font1.draw(batch, "Enable Sound Effects", soundToggleButton.x + 20, soundToggleButton.y + 55);
+				font1.draw(batch, "ENABLE SOUND EFFECTS", soundToggleButton.x + 20, soundToggleButton.y + 55);
 			}
 
 			footballOval.set(centreX, ballY, 300, 200);
@@ -910,7 +914,9 @@ public class MyGdxGame extends ApplicationAdapter {
 				font1.draw(batch, savedUsernames.get(i), width / 2f - 200, boxY);
 			}
 
-			font1.draw(batch, "Enter New Name", width / 2f - 150, enterButtonY + 40);
+			font1.setColor(Color.BLACK); // Set text color to black
+			font1.draw(batch, "Enter New Name", width / 2f - 100, enterButtonY + 40); // Centered in 440px box
+			font1.setColor(Color.WHITE); // Reset for other text
 			batch.end();
 
 			if (enteredUsername != null) {
@@ -1134,7 +1140,7 @@ public class MyGdxGame extends ApplicationAdapter {
 				enteredUsername = null; // Reset if user cancels input
 				gameState = STATE_GAME_OVER;
 			}
-		}, "Enter Username", "", "Max 5 characters");
+		}, "ENTER USERNAME", "", "Max 5 characters");
 	}
 
 }
