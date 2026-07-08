@@ -8,12 +8,14 @@ public class StoryLevel {
     private StoryModeCategories category;
     private boolean unlocked;
     private boolean completed;
+    private int maxLives;
 
     public StoryLevel(float[] levelBarrierHeight, float levelSpeed, int levelLives,
                       int thisLevelNumber, StoryModeCategories levelCategory, boolean levelUnlocked) {
         barrierHeights = levelBarrierHeight;
         speed = levelSpeed;
         lives = levelLives;
+        maxLives = levelLives;
         levelNumber = thisLevelNumber;
         category = levelCategory;
         unlocked = levelUnlocked;
@@ -48,9 +50,11 @@ public class StoryLevel {
         return speed;
     }
 
-    public float getLives() {
+    public int getLives() {
         return lives;
     }
+
+    public int getMaxLives() { return maxLives; }
 
     public boolean isCompleted() {
         return completed;
@@ -79,6 +83,8 @@ public class StoryLevel {
     public void setBarrierHeights(float[] newBarrierHeights) {
         barrierHeights = newBarrierHeights;
     }
+
+    public void setMaxLives(int maxLives) { this.maxLives = maxLives; }
 
     public void decrementLives() {
         lives--;

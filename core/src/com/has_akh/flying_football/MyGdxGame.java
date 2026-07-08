@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
@@ -32,7 +33,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	Texture[] footballs;
 	Ellipse footballOval;
 	Rectangle[] lowerBarriers, upperBarriers;
-	Texture goalSupport, goal;
+	Texture goalSupport, goal, heartFull, heartEmpty;
 	Circle football;
 	int thisFootball;
 	float ballY;
@@ -48,7 +49,8 @@ public class MyGdxGame extends ApplicationAdapter {
 	boolean collision, soundEnabled, showOutlines;
 	BitmapFont font, font1, font2, leaderboardFont;
 	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton, ContinueGameButton, soundToggleButton;
-	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton;
+	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton, backToHomeButton;
+	Rectangle levelCompleteBackButton, levelCompleteReplayButton, levelCompleteNextButton;
 	private String enteredUsername = null;
 	int collisionCooldown = 0;
 	int scoringBarrier = 0;
@@ -84,6 +86,10 @@ public class MyGdxGame extends ApplicationAdapter {
 	public void create () {
 		leftArrow = new Rectangle(50, Gdx.graphics.getHeight() - 150, 100, 100);
 		rightArrow = new Rectangle(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 150, 100, 100);
+		backToHomeButton = new Rectangle(Gdx.graphics.getWidth() / 2f - 200,50,400, 100);
+		levelCompleteBackButton = new Rectangle(Gdx.graphics.getWidth()/2 - 600, 200, 350, 120);
+		levelCompleteReplayButton = new Rectangle(Gdx.graphics.getWidth()/2 - 175, 200, 350, 120);
+		levelCompleteNextButton = new Rectangle(Gdx.graphics.getWidth()/2 + 250, 200, 350, 120);
 		batch = new SpriteBatch();
 		storyLevels = new ArrayList<>();
 		background = new Texture("Background.jpg");
@@ -92,6 +98,8 @@ public class MyGdxGame extends ApplicationAdapter {
 		footballs = new Texture[2];
 		goalSupport = new Texture("GoalSupport.png");
 		goal = new Texture("Goal.png");
+		heartFull = new Texture("heart1.png");   // full life
+		heartEmpty = new Texture("heart2.png");  // lost life
 		footballOval = new Ellipse();
 		footballs[0] = new Texture("Football.png");
 		footballs[1] = new Texture("Football2.png");
@@ -204,8 +212,8 @@ public class MyGdxGame extends ApplicationAdapter {
 				int levelNumber = totalLevelCount + 1;
 
 				// Example barrier heights: vary by category and level
-				float[] barrierHeights = new float[numOfGoals];
-				for (int j = 0; j < numOfGoals; j++) {
+				float[] barrierHeights = new float[i+2];
+				for (int j = 0; j < i+2; j++) {
 					barrierHeights[j] = 200 + (category.ordinal() * 50) + (i * 5); // Scales with category and level
 				}
 
@@ -260,11 +268,35 @@ public class MyGdxGame extends ApplicationAdapter {
 		enteredUsername = null; // Reset for next input
 	}
 
+	private void rebuildBarriers(int newCount) {
+		numOfGoals = newCount;
+
+		lowerBarriers = new Rectangle[numOfGoals];
+		upperBarriers = new Rectangle[numOfGoals];
+
+		for (int i = 0; i < numOfGoals; i++) {
+			lowerBarriers[i] = new Rectangle();
+			upperBarriers[i] = new Rectangle();
+		}
+	}
+
 	public void startStoryLevel(StoryLevel level) {
 		score = 0;
 		ballY = (Gdx.graphics.getHeight()/2) - 100;
 
+		numOfGoals = level.getBarrierHeights().length;
+
+		supportX = new float[numOfGoals];
+		supportHeight = new float[numOfGoals];
+		lowerBarriers = new Rectangle[numOfGoals];
+		upperBarriers = new Rectangle[numOfGoals];
+
 		float[] levelBarrierHeights = level.getBarrierHeights();
+
+		// Rebuild arrays to match level size
+		rebuildBarriers(levelBarrierHeights.length);
+
+		// Now safe to fill
 		for (int i = 0; i < numOfGoals; i++) {
 			supportX[i] = (Gdx.graphics.getWidth()/2) - 100 + Gdx.graphics.getWidth()/2 + i * distanceBetweenGoals;
 			supportHeight[i] = levelBarrierHeights[i];
@@ -290,7 +322,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			goalVelocity = (int) (2 + (score * 1.3));
 		}
 
-		if ((gameState == STATE_RUNNING || gameState == STATE_RUNNING2 || gameState == STATE_STORY) && Gdx.input.justTouched()) {
+		if ((gameState == STATE_RUNNING || gameState == STATE_RUNNING2) && Gdx.input.justTouched()) {
 			float touchX = Gdx.input.getX();
 			float touchY = height - Gdx.input.getY(); // Convert Y-coordinate to match screen
 
@@ -304,6 +336,10 @@ public class MyGdxGame extends ApplicationAdapter {
 			} else {
 				velocity = -20;
 			}
+		}
+
+		if (gameState == STATE_STORY && Gdx.input.justTouched()) {
+			velocity = -20;
 		}
 
 		// Handle the START SCREEN menu
@@ -441,6 +477,83 @@ public class MyGdxGame extends ApplicationAdapter {
 			return;
 		}
 
+		if (gameState == STATE_STORY_LEVEL_COMPLETE) {
+
+			batch.begin();
+
+			String title = "LEVEL " + currentLevel.getLevelNumber() +
+					" COMPLETED (" + currentLevel.getCategory().name() + ")";
+			GlyphLayout layout = new GlyphLayout(font2, title);
+			font2.draw(batch, layout,
+					Gdx.graphics.getWidth()/2 - layout.width/2,
+					Gdx.graphics.getHeight() - 200);
+
+			batch.end();
+
+			// Draw buttons
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+			shapes.setColor(Color.BLUE);
+			shapes.rect(levelCompleteBackButton.x, levelCompleteBackButton.y,
+					levelCompleteBackButton.width, levelCompleteBackButton.height);
+
+			shapes.setColor(Color.GRAY);
+			shapes.rect(levelCompleteReplayButton.x, levelCompleteReplayButton.y,
+					levelCompleteReplayButton.width, levelCompleteReplayButton.height);
+
+			shapes.setColor(Color.GREEN);
+			shapes.rect(levelCompleteNextButton.x, levelCompleteNextButton.y,
+					levelCompleteNextButton.width, levelCompleteNextButton.height);
+
+			shapes.end();
+
+			batch.begin();
+			font1.draw(batch, "BACK TO LEVEL SELECT",
+					levelCompleteBackButton.x + 20,
+					levelCompleteBackButton.y + 75);
+
+			font1.draw(batch, "REPLAY LEVEL",
+					levelCompleteReplayButton.x + 40,
+					levelCompleteReplayButton.y + 75);
+
+			font1.draw(batch, "NEXT LEVEL",
+					levelCompleteNextButton.x + 60,
+					levelCompleteNextButton.y + 75);
+
+			batch.end();
+
+			// Handle input
+			if (Gdx.input.justTouched()) {
+				float tx = Gdx.input.getX();
+				float ty = Gdx.graphics.getHeight() - Gdx.input.getY();
+
+				if (levelCompleteBackButton.contains(tx, ty)) {
+					gameState = STATE_LEVEL_SELECT;
+					return;
+				}
+
+				if (levelCompleteReplayButton.contains(tx, ty)) {
+					startStoryLevel(currentLevel);
+					gameState = STATE_STORY;
+					return;
+				}
+
+				if (levelCompleteNextButton.contains(tx, ty)) {
+					int nextIndex = currentLevel.getLevelNumber();
+					if (nextIndex < storyLevels.size()) {
+						currentLevel = storyLevels.get(nextIndex);
+						startStoryLevel(currentLevel);
+						gameState = STATE_STORY;
+					} else {
+						gameState = STATE_LEVEL_SELECT; // No more levels
+					}
+					return;
+				}
+			}
+
+			return; // Prevent falling through to other states
+		}
+
 		if (gameState == STATE_OTHER_SCREEN) {
 			batch.begin();
 			font2.draw(batch, "Coming Soon", width / 2 - 400, height / 2 + 100);
@@ -464,8 +577,9 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 			StoryModeCategories currentCategory = categories[currentCategoryIndex];
 			String title = "Level Select - " + currentCategory.name() + " Levels";
-			float titleWidth = font2.getRegion().getRegionWidth(); // rough estimate
-			font2.draw(batch, title, (width / 2f) - (titleWidth / 2f), height - 50);
+			GlyphLayout layout = new GlyphLayout(font2, title);
+			float titleWidth = layout.width;
+			font2.draw(batch, layout, width / 2f - titleWidth / 2f, height - 50);
 			batch.end();
 
 			ArrayList<StoryLevel> levels = getLevelsForCategory(currentCategory);
@@ -483,7 +597,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			int totalGridHeight = rows * tileHeight + (rows - 1) * verticalGap;
 
 			int startX = (width - totalGridWidth) / 2;
-			int startY = height - 250; // leave space for title
+			int startY = height - 400; // leave space for title
 			int startIndex = currentPage * levelsPerPage;
 
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -529,6 +643,18 @@ public class MyGdxGame extends ApplicationAdapter {
 			shapes.triangle(width - 80, height - 100, width - 130, height - 50, width - 130, height - 150); // right arrow
 			shapes.end();
 
+			// Draw BACK TO HOME button
+			shapes.begin(ShapeRenderer.ShapeType.Filled);
+			shapes.setColor(Color.FIREBRICK); // red-ish button
+			shapes.rect(backToHomeButton.x, backToHomeButton.y, backToHomeButton.width, backToHomeButton.height);
+			shapes.end();
+
+			batch.begin();
+			font1.draw(batch, "BACK TO HOME",
+					backToHomeButton.x + backToHomeButton.width / 2f - 120,
+					backToHomeButton.y + backToHomeButton.height / 2f + 20);
+			batch.end();
+
 			// Handle input
 			if (Gdx.input.justTouched()) {
 				float tx = Gdx.input.getX();
@@ -570,7 +696,35 @@ public class MyGdxGame extends ApplicationAdapter {
 					}
 					return;
 				}
+
+				// Back to home button
+				if (backToHomeButton.contains(tx, ty)) {
+					gameState = STATE_START_SCREEN;
+					return;
+				}
 			}
+		}
+
+		// -----------------------------
+		// Draw Lives (Hearts)
+		// -----------------------------
+		if (gameState == STATE_STORY) {
+			batch.begin();
+
+			int maxLives = currentLevel.getMaxLives();   // You may need to add this getter
+			int currentLives = currentLevel.getLives();
+
+			int heartSize = 80;
+			int spacing = 20;
+			int startX = 50;
+			int startY = Gdx.graphics.getHeight() - 150;
+
+			for (int i = 0; i < maxLives; i++) {
+				Texture heartTex = (i < currentLives) ? heartFull : heartEmpty;
+				batch.draw(heartTex, startX + i * (heartSize + spacing), startY, heartSize, heartSize);
+			}
+
+			batch.end();
 		}
 
 		if (gameState == STATE_STORY) {
@@ -1144,3 +1298,4 @@ public class MyGdxGame extends ApplicationAdapter {
 	}
 
 }
+
