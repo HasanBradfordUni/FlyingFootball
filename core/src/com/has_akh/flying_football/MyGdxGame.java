@@ -1298,4 +1298,3 @@ public class MyGdxGame extends ApplicationAdapter {
 	}
 
 }
-
