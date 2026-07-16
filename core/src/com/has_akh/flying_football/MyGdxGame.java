@@ -49,16 +49,16 @@ public class MyGdxGame extends ApplicationAdapter {
 	float[] supportHeight = new float[numOfGoals];
 	float distanceBetweenGoals;
 	int score = 0, scoringGoal = 0;
-	boolean collision, soundEnabled, showOutlines;
+	boolean collision, soundEnabled, showOutlines, newHighScoreFlag;
+	;
 	BitmapFont font, font1, font2, leaderboardFont;
 	Rectangle endlessButton, classicButton, storyButton, arcadeButton, leaderboardButton, ContinueGameButton, soundToggleButton;
 	Rectangle playGameButton, settingsButton, exitButton, pauseButton, mainMenuButton, endGameButton, NewGameButton, backToHomeButton;
 	Rectangle levelCompleteBackButton, levelCompleteReplayButton, levelCompleteNextButton;
 	private String enteredUsername = null;
-	int collisionCooldown = 0;
-	int scoringBarrier = 0;
+	int collisionCooldown = 0, storyScore = 0, scoringBarrier = 0;
 	Sound jumpSound, goalSound, barrierHitSound, bounceSound, saveScoreSound;
-	FileHandle starFile;
+	FileHandle starFile, storyScoreFile;
 
 	// Define game states
 	final int STATE_NOT_STARTED = -1;
@@ -74,6 +74,7 @@ public class MyGdxGame extends ApplicationAdapter {
 	final int STATE_STORY = 9;
 	final int STATE_STORY_LEVEL_COMPLETE = 10;
 	final int STATE_LEVEL_SELECT = 11;
+	final int STATE_CINEMATIC = 12;
 	private int previousGameMode;
 	private String filename;
 	private FileHandle scoresFile, endlessScoresFile;
@@ -83,8 +84,12 @@ public class MyGdxGame extends ApplicationAdapter {
 	private StoryLevel currentLevel;
 	private int currentCategoryIndex = 0;
 	StoryModeCategories[] categories = StoryModeCategories.values(); //Converting the enum to an array for level creation
-	Rectangle leftArrow;
-	Rectangle rightArrow;
+	Rectangle leftArrow, rightArrow;
+	ArrayList<Texture> cinematicFrames;
+	int currentCinematicFrame = 0;
+	boolean cinematicSkippable = true;
+	float cinematicTimer = 0f, cinematicFrameDuration = 0.2f; // 0.2 seconds per frame
+	int cinematicNextState = STATE_STORY;
 
 	public MyGdxGame(AdService adService) {
 		this.adService = adService;
@@ -132,6 +137,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		saveScoreSound = Gdx.audio.newSound(Gdx.files.internal("save.mp3"));
 		soundEnabled = true;
 		showOutlines = false;
+		newHighScoreFlag = false;
 
 		try {
 			FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("RobotoCondensed-VariableFont_wght.ttf"));
@@ -178,6 +184,10 @@ public class MyGdxGame extends ApplicationAdapter {
 		if (!endlessScoresFile.exists()) {
 			endlessScoresFile.writeString("", false);
 		}
+		storyScoreFile = Gdx.files.local("story_scores.txt");
+		if (!storyScoreFile.exists()) {
+			storyScoreFile.writeString("", false);
+		}
 
 		// Define menu button areas
 		playGameButton = new Rectangle(Gdx.graphics.getWidth() / 2 - 250, 500, 500, 100);
@@ -216,6 +226,18 @@ public class MyGdxGame extends ApplicationAdapter {
 			upperBarriers[i] = new Rectangle();
 			barrierPenalized[i] = false; // reset flags
 		}
+	}
+
+	private float getCategoryMultiplier(StoryModeCategories category) {
+		switch (category) {
+			case NOOB: return 1f;
+			case DECENT: return 1.2f;
+			case INTERMEDIATE: return 1.5f;
+			case ADEPT: return 2f;
+			case PRO: return 2.5f;
+			case HACKER: return 5f;
+		}
+		return 1f;
 	}
 
 	public void createLevels() {
@@ -278,6 +300,22 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 
 		starFile.writeString(updated.toString(), false);
+	}
+
+	public void startCinematic(String folderName, boolean skippable, int nextState) {
+		cinematicFrames = new ArrayList<>();
+		currentCinematicFrame = 0;
+		cinematicSkippable = skippable;
+		cinematicNextState = nextState;
+		cinematicTimer = 0f;
+
+		for (int i = 1; i <= 10; i++) {
+			FileHandle fh = Gdx.files.internal("cinematics/" + folderName + "/frame" + i + ".png");
+			if (!fh.exists()) break;
+			cinematicFrames.add(new Texture(fh));
+		}
+
+		gameState = STATE_CINEMATIC;
 	}
 
 	public void saveEndlessState() {
@@ -391,7 +429,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			if (soundToggleButton.contains(touchX, touchY)) {
 				soundEnabled = !soundEnabled;
 				return;
-			} else if (pauseButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
+			} else if (pauseButton.contains(Gdx.input.getX(), height - Gdx.input.getY())) {
 				previousGameMode = gameState;
 				gameState = STATE_PAUSED;
 				return;
@@ -547,10 +585,14 @@ public class MyGdxGame extends ApplicationAdapter {
 					" COMPLETED (" + currentLevel.getCategory().name() + ")";
 			GlyphLayout layout = new GlyphLayout(font2, title);
 			font2.draw(batch, layout,
-					Gdx.graphics.getWidth()/2 - layout.width/2,
-					Gdx.graphics.getHeight() - 200);
+					width/2 - layout.width/2,
+					height - 200);
 
 			batch.end();
+
+			if (previousGameMode == STATE_STORY) {
+				filename = "story_scores.txt";
+			}
 
 			// Draw buttons
 			shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -587,7 +629,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			// Handle input
 			if (Gdx.input.justTouched()) {
 				float tx = Gdx.input.getX();
-				float ty = Gdx.graphics.getHeight() - Gdx.input.getY();
+				float ty = height - Gdx.input.getY();
 
 				if (levelCompleteBackButton.contains(tx, ty)) {
 					gameState = STATE_LEVEL_SELECT;
@@ -629,8 +671,8 @@ public class MyGdxGame extends ApplicationAdapter {
 			int totalWidth = maxLives * starSize + (maxLives - 1) * spacing;
 
 			// Center horizontally
-			int startX = (Gdx.graphics.getWidth() - totalWidth) / 2;
-			int startY = Gdx.graphics.getHeight() / 2 - 50; // Adjust vertical position as needed
+			int startX = (width - totalWidth) / 2;
+			int startY = height / 2 - 50; // Adjust vertical position as needed
 
 			for (int i = 0; i < maxLives; i++) {
 				Texture tex = (i < currentLives) ? starFull : starEmpty;
@@ -642,6 +684,24 @@ public class MyGdxGame extends ApplicationAdapter {
 				);
 			}
 
+			batch.end();
+
+			batch.begin();
+			font1.draw(batch,
+					"Score: " + storyScore,
+					centreX + 50,
+					centreY);
+			batch.end();
+
+			batch.begin();
+			if (newHighScoreFlag) {
+				font2.setColor(Color.YELLOW);
+				font2.draw(batch,
+						"NEW HIGH SCORE!",
+						centreX - 150,
+						centreY + 350);
+				font2.setColor(Color.WHITE);
+			}
 			batch.end();
 
 			return; // Prevent falling through to other states
@@ -785,6 +845,49 @@ public class MyGdxGame extends ApplicationAdapter {
 						if (selected.isUnlocked()) {
 							currentLevel = selected;
 							gameState = STATE_STORY;
+							if (currentLevel.getLevelNumber() == 1) {
+								startCinematic("intro", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 10) {
+								startCinematic("beginner", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 18) {
+								startCinematic("pitch", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 21) {
+								startCinematic("lowfields", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 33) {
+								startCinematic("fans", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 41) {
+								startCinematic("crowds", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 48) {
+								startCinematic("cameras", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 55) {
+								startCinematic("tunnel", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 61) {
+								startCinematic("floodlights", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 69) {
+								startCinematic("stadium", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 75) {
+								startCinematic("chanting", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 81) {
+								startCinematic("wembley", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 91) {
+								startCinematic("allianz", true, STATE_STORY);
+								return;
+							} if (currentLevel.getLevelNumber() == 99) {
+								startCinematic("bernabeu", true, STATE_STORY);
+								return;
+							}
 							startStoryLevel(currentLevel);
 							velocity = 0;
 						}
@@ -815,6 +918,39 @@ public class MyGdxGame extends ApplicationAdapter {
 			}
 		}
 
+		if (gameState == STATE_CINEMATIC) {
+
+			// Draw current frame
+			batch.begin();
+			batch.draw(cinematicFrames.get(currentCinematicFrame),
+					0, 0,
+					Gdx.graphics.getWidth(),
+					Gdx.graphics.getHeight());
+			batch.end();
+
+			// Auto‑advance timer
+			cinematicTimer += Gdx.graphics.getDeltaTime();
+
+			if (cinematicTimer >= cinematicFrameDuration) {
+				cinematicTimer = 0f;
+				currentCinematicFrame++;
+
+				// Finished all frames → go to next state
+				if (currentCinematicFrame >= cinematicFrames.size()) {
+					gameState = cinematicNextState;
+					return;
+				}
+			}
+
+			// Skip on tap
+			if (Gdx.input.justTouched() && cinematicSkippable) {
+				gameState = cinematicNextState;
+				return;
+			}
+
+			return;
+		}
+
 		// -----------------------------
 		// Draw Lives (Hearts)
 		// -----------------------------
@@ -827,7 +963,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			int heartSize = 80;
 			int spacing = 20;
 			int startX = 50;
-			int startY = Gdx.graphics.getHeight() - 150;
+			int startY = height - 150;
 
 			for (int i = 0; i < maxLives; i++) {
 				Texture heartTex = (i < currentLives) ? heartFull : heartEmpty;
@@ -836,11 +972,23 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			batch.end();
 
+			// Draw Story mode Score text under hearts
+			batch.begin();
+			String scoreText = "Score: " + storyScore;
+			GlyphLayout scoreLayout = new GlyphLayout(font1, scoreText);
+
+			font1.draw(batch,
+					scoreText,
+					width - scoreLayout.width - 50,   // right aligned
+					height - 50);
+
+			batch.end();
+
 			// Draw ad board placeholder
 			batch.begin();
 			batch.setColor(1,1,1,1);
 			batch.draw(adBoardTexture,
-					Gdx.graphics.getWidth()/2 - 400,
+					width/2 - 400,
 					20,
 					800,
 					120
@@ -923,6 +1071,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 			if (hitBarrier) {
 				currentLevel.decrementLives();
+				storyScore -= 50;
 
 				if (soundEnabled) barrierHitSound.play();
 
@@ -955,11 +1104,39 @@ public class MyGdxGame extends ApplicationAdapter {
 					}
 				}
 
+				// Award +100 for each passed goal
+				for (int i = 0; i < numOfGoals; i++) {
+					if (!barrierPenalized[i] && supportX[i] + goal.getWidth() < centreX) {
+						storyScore += 100;
+						barrierPenalized[i] = true;
+					}
+				}
+
 				if (allPassed) {
 					// Mark level complete
 					currentLevel.completeLevel();
+					// Base completion bonus
+					storyScore += 500;
+
+					// Star bonus
 					int starsEarned = currentLevel.getLives(); // 0–3
+					if (starsEarned == currentLevel.getMaxLives()) {
+						storyScore += 200;
+					}
+
+					// Apply category multiplier
+					float multiplier = getCategoryMultiplier(currentLevel.getCategory());
+					storyScore = Math.round(storyScore * multiplier);
+
+					int previousBest = getPreviousStoryScore(currentLevel.getLevelNumber());
+					boolean isNewHighScore = storyScore > previousBest;
+					newHighScoreFlag = isNewHighScore;
+
+					// Save stars
 					saveStarsForLevel(currentLevel, starsEarned);
+
+					// Save score
+					saveStoryScore(currentLevel, storyScore);
 
 					// Unlock next level
 					int nextIndex = currentLevel.getLevelNumber(); // numbering starts at 1
@@ -970,6 +1147,8 @@ public class MyGdxGame extends ApplicationAdapter {
 
 					// Move to level complete screen
 					gameState = STATE_STORY_LEVEL_COMPLETE;
+					filename = "story_scores.txt";
+					previousGameMode = STATE_STORY;
 					return;
 				}
 			}
@@ -1070,7 +1249,7 @@ public class MyGdxGame extends ApplicationAdapter {
 				if (soundToggleButton.contains(touchX, touchY)) {
 					soundEnabled = !soundEnabled;
 					return;
-				} if (!mainMenuButton.contains(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY())) {
+				} if (!mainMenuButton.contains(Gdx.input.getX(), height - Gdx.input.getY())) {
 					gameState = STATE_RUNNING; // Resume game
 				} else {
 					gameState = STATE_START_SCREEN; // Return to the main menu
@@ -1093,7 +1272,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.begin();
 			batch.setColor(1,1,1,1);
 			batch.draw(adBoardTexture,
-					Gdx.graphics.getWidth()/2 - 400,
+					width/2 - 400,
 					20,
 					800,
 					120
@@ -1240,17 +1419,79 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		if (gameState == STATE_LEADERBOARD_SCREEN) {
 			String title_string = "";
+			if (previousGameMode == STATE_STORY) {
+				filename = "story_scores.txt";
+			}
 
-			if (filename == "endless_scores.txt") {
+			if (filename.equals("endless_scores.txt")) {
 				title_string = "Leaderboard (Endless)";
-			} else if (filename == null) {
+			} else if (filename.equals("story_scores.txt")) {
+				title_string = "Leaderboard (Story)";
+			} else if (filename.equals(null)) {
 				filename = "scores.txt";
 				title_string = "Leaderboard (Classic)";
 			} else {
 				title_string = "Leaderboard (Classic)";
 			}
 
+			// -----------------------------
+			// STORY MODE LEADERBOARD
+			// -----------------------------
+			if ("story_scores.txt".equals(filename)) {
 
+				String[] lines = storyScoreFile.readString().split("\n");
+
+				// Parse into objects
+				class StoryEntry {
+					int level;
+					String category;
+					int score;
+				}
+
+				ArrayList<StoryEntry> entries = new ArrayList<>();
+
+				for (String line : lines) {
+					if (line.trim().isEmpty()) continue;
+
+					String[] parts = line.split(",");
+					if (parts.length < 3) continue;
+
+					StoryEntry e = new StoryEntry();
+					e.level = Integer.parseInt(parts[0].replace("Level ", "").trim());
+					e.category = parts[1].trim();
+					e.score = Integer.parseInt(parts[2].trim());
+					entries.add(e);
+				}
+
+				// Sort by score descending
+				Collections.sort(entries, new Comparator<StoryEntry>() {
+					@Override
+					public int compare(StoryEntry a, StoryEntry b) {
+						return b.score - a.score; // descending
+					}
+				});
+
+				// Display
+				batch.begin();
+				int yOffset = 0;
+
+				for (StoryEntry e : entries) {
+					String display = "Lvl " + e.level + " (" + e.category + ") - " + e.score;
+					leaderboardFont.draw(batch, display, width / 2f - 200, height - 160 - yOffset);
+					yOffset += 60;
+				}
+
+				batch.end();
+
+				if (Gdx.input.justTouched()) {
+					gameState = STATE_START_SCREEN;
+				}
+				return;
+			}
+
+			// -----------------------------
+			// CLASSIC / ENDLESS LEADERBOARD
+			// -----------------------------
 			ArrayList<String> topScores = getTopScores(filename);
 
 			batch.begin();
@@ -1346,6 +1587,20 @@ public class MyGdxGame extends ApplicationAdapter {
 		return list;
 	}
 
+	private int getPreviousStoryScore(int levelNumber) {
+		String[] lines = storyScoreFile.readString().split("\n");
+		int best = 0;
+
+		for (String line : lines) {
+			if (line.startsWith("Level " + levelNumber + ",")) {
+				String[] parts = line.split(",");
+				int score = Integer.parseInt(parts[2].trim());
+				if (score > best) best = score;
+			}
+		}
+		return best;
+	}
+
 	public void saveScore(String username, int score, String filename) {
 		if (filename.equals("scores.txt")) {
 			scoresFile.writeString(username + " " + score + "\n", true); // Append scores
@@ -1355,6 +1610,14 @@ public class MyGdxGame extends ApplicationAdapter {
 		if (soundEnabled) {
 			saveScoreSound.play();
 		}
+	}
+
+	private void saveStoryScore(StoryLevel level, int score) {
+		String entry = "Level " + level.getLevelNumber() + "," +
+				level.getCategory().name() + "," +
+				score + "\n";
+
+		storyScoreFile.writeString(entry, true); // append
 	}
 
 	public ArrayList<String> getSavedUsernames(String filename) {
